@@ -1,0 +1,17 @@
+{
+	"folders": [
+		{
+			"path": "Differential privacy"
+		},
+		{
+			"path": "Framework"
+		},
+		{
+			"path": "data"
+		},
+		{
+			"path": "Helpers"
+		}
+	],
+	"settings": {}
+}
