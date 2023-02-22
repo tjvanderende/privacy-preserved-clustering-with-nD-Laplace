@@ -11,6 +11,12 @@
 		},
 		{
 			"path": "Helpers"
+		},
+		{
+			"path": ".devcontainer"
+		},
+		{
+			"path": "RQ1"
 		}
 	],
 	"settings": {}

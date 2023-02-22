@@ -1,0 +1,8 @@
+name: nd-laplace
+dependencies: 
+  - matplotlib=3.1
+  - pandas=1.0
+  - pip=20.0
+  - python=3.6
+  - scikit-learn=0.22
+  - yellowbrick
