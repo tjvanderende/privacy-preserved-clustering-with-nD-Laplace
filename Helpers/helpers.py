@@ -55,9 +55,9 @@ def load_dataset(datasetname):
     df = df.loc[:, ~df.columns.str.contains('^Unnamed')]
     return df
 
-def load_plain_and_perturbed_dataset(epsilon, import_path):
+def load_plain_and_perturbed_dataset(epsilon, import_path, perturbed_path):
     dataset_name1 = import_path + 'plain.csv'
-    dataset_name2 = import_path + 'perturbed_' + str(epsilon) + '.csv'
+    dataset_name2 = perturbed_path + 'perturbed_' + str(epsilon) + '.csv'
     dataset1 = load_dataset(dataset_name1)
     dataset2 = load_dataset(dataset_name2)
     return dataset1, dataset2
@@ -79,8 +79,8 @@ def map_models_to_name(model):
         return 'Not supported'
     
 
-def measure_external_validity_report(epsilon, cluster_model, import_path):
-    plain_df, perturbed_df = load_plain_and_perturbed_dataset(epsilon, import_path)
+def measure_external_validity_report(epsilon, cluster_model, import_path, perturbed_path):
+    plain_df, perturbed_df = load_plain_and_perturbed_dataset(epsilon, import_path, perturbed_path)
     plain_df_scaled = StandardScaler().fit_transform(plain_df)
     perturbed_df_scaled = StandardScaler().fit_transform(perturbed_df)
     plain_fitted_df = cluster_model.fit(plain_df_scaled)
@@ -91,7 +91,7 @@ def measure_external_validity_report(epsilon, cluster_model, import_path):
     sc = silhouette_score(perturbed_df_scaled, perturbed_fitted_df.labels_)
     return ami, ari, ch, sc
     
-def generate_external_validity_export(epsilons, models, n_times = 10, import_path='../exports'):
+def generate_external_validity_export(epsilons, models, n_times = 10, import_path='../exports', perturbed_path='../perturbed'):
     dataframe = {'type': [], 'epsilon': [], 'ari': [], 'ami': [], 'ch': [], 'sc': []}
     for epsilon in epsilons:
         for model in models:
@@ -103,7 +103,7 @@ def generate_external_validity_export(epsilons, models, n_times = 10, import_pat
             ch_list = []
             sc_list = []
             for i in range(n_times):
-                ami, ari, ch, sc = measure_external_validity_report(epsilon, model, import_path)
+                ami, ari, ch, sc = measure_external_validity_report(epsilon, model, import_path, perturbed_path)
                 ami_list.append(ami)
                 ari_list.append(ari)
                 ch_list.append(ch)
