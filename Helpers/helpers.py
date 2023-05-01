@@ -91,11 +91,12 @@ def measure_external_validity_report(epsilon, cluster_model, import_path, pertur
     sc = silhouette_score(perturbed_df_scaled, perturbed_fitted_df.labels_)
     return ami, ari, ch, sc
     
-def generate_external_validity_export(epsilons, models, n_times = 10, import_path='../exports', perturbed_path='../perturbed'):
+def generate_external_validity_export(epsilons, models, n_times = 10, import_path='../exports', perturbed_path='../perturbed', model_name= None):
     dataframe = {'type': [], 'epsilon': [], 'ari': [], 'ami': [], 'ch': [], 'sc': []}
     for epsilon in epsilons:
+        i = 0
         for model in models:
-            algorithmName = map_models_to_name(model)
+            algorithmName = model_name if model_name is not None else map_models_to_name(model)
             dataframe['type'].append(algorithmName)
             dataframe['epsilon'].append(epsilon)
             ami_list = []
@@ -115,6 +116,7 @@ def generate_external_validity_export(epsilons, models, n_times = 10, import_pat
             dataframe['ari'].append(ari)
             dataframe['ch'].append(np.sum(ch_list) / n_times)
             dataframe['sc'].append(np.sum(sc_list) / n_times)
+            i += 1
     return pd.DataFrame(dataframe)
 
 
