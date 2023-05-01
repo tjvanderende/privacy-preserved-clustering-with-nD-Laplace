@@ -13,7 +13,7 @@ import abc
 class LDPBase(metaclass=abc.ABCMeta):
 
     @abc.abstractmethod
-    def randomize(self, value):
+    def randomise(self, value):
         """
         the randomize function
         """

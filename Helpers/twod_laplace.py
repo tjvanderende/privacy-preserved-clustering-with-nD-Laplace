@@ -98,10 +98,11 @@ def generate_laplace_noise_for_point(x0, epsilon, X, doTruncate = True):
 
 def generate_truncated_laplace_noise(X, epsilon): 
     Z = []
+    X = np.array(X)
     x_max = [np.max(X[:, 0]), np.max(X[:, 1])]
     x_min = [np.min(X[:, 0]), np.min(X[:, 1])]
     for x0 in X:
         z, R = calculate_radius_with_noise(x0, 1, epsilon)
         z = truncate(x_max, x_min, x0, z[0], epsilon)
-        Z.append(z)
-    return x_max, x_min, Z
+        Z.append([z[0], z[1]])
+    return Z

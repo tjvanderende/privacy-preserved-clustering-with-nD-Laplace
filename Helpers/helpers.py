@@ -4,8 +4,18 @@ import numpy as np
 import pandas as pd
 from sklearn import clone
 from sklearn.discriminant_analysis import StandardScaler
-from sklearn.metrics import adjusted_mutual_info_score, adjusted_rand_score, calinski_harabasz_score, silhouette_score
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import adjusted_mutual_info_score, adjusted_rand_score, calinski_harabasz_score, roc_curve, silhouette_score
 import seaborn as sns
+from sklearn.model_selection import train_test_split
+from art.attacks.inference.membership_inference import MembershipInferenceBlackBox
+from art.utils import to_categorical
+from art.attacks.inference.membership_inference import ShadowModels
+from art.estimators.classification.scikitlearn import ScikitlearnRandomForestClassifier
+from Helpers import twod_laplace
+from diffprivlib.mechanisms import laplace, gaussian
+
+from Helpers.pairwise import PMBase, PiecewiseMechanism
 
 def elbow_plot(sse):
     from matplotlib import pyplot as plt
@@ -128,3 +138,94 @@ def plot_utility(dataframe, epsilons, metric_name, axes, metric = 'Adjusted Mutu
     ax.set_ylabel(metric)
     plt.legend(title='Cluster algorithm', loc='upper left', labels=dataframe['type'].unique())
 
+    
+def run_mi_experiments(X, y_true, epsilons, n_times = 10, algorithm = None): 
+    shokri_mi_avgs = {'epsilon': [], 'shokri_mi_adv': [], 'run': []}
+    #create_labels = KMeans(init='random', n_clusters=4)
+    X_pd = pd.DataFrame(X, columns=['X', 'Y'])
+    #create_labels.fit(StandardScaler().fit_transform(X_pd))
+    #X_pd['target'] = create_labels.labels_
+    for epsilon in epsilons:
+        #_, _, Z = twod_laplace.generate_truncated_laplace_noise(X, epsilon)
+        #Z_pd = pd.DataFrame(Z, columns=['X', 'Y'])
+        #create_labels = KMeans(init='random', n_clusters=4)
+        #create_labels.fit(StandardScaler().fit_transform(Z_pd))
+        #target = create_labels.labels_
+        for run in range(n_times):
+            shokri_mi_avgs['epsilon'].append(epsilon)
+            shokri_mi_avgs['run'].append(run)
+
+            shadow_ratio = 0.75
+            dataset = train_test_split(X_pd, y_true, test_size=shadow_ratio)
+
+            x_target, x_shadow, y_target, y_shadow = dataset
+
+            attack_train_size = len(x_target) // 2
+            #attack_test_size = attack_train_size
+            x_target_train = algorithm(x_target[:attack_train_size], epsilon)
+            x_target_train = np.array(x_target_train)
+            #x_target_train = X_pd.iloc[x_target[:target_train_size].index, 0:2]
+            y_target_train = y_target[:attack_train_size]
+            #y_target_train = X_pd.iloc[x_target[:target_train_size].index, 2]
+            x_target_test = x_target[attack_train_size:]
+            y_target_test = y_target[attack_train_size:]
+
+            # We infer based on the original data, to make sure we can estimate the dp protection
+            #x_shadow_np = X_pd.iloc[x_shadow.index, 0:2].to_numpy()
+            #y_shadow_np = X_pd.iloc[y_shadow.index, 2].to_numpy()
+            x_shadow_np = x_shadow.to_numpy()
+            y_shadow_np = y_shadow
+            clf = RandomForestClassifier()
+            classifier = clf.fit(x_target_train, y_target_train)
+            
+            art_classifier = ScikitlearnRandomForestClassifier(classifier)
+
+            ## train shadow models
+            shadow_models = ShadowModels(art_classifier, num_shadow_models=3)
+            shadow_dataset = shadow_models.generate_shadow_dataset(x_shadow_np, to_categorical(y_shadow_np, 4))
+            (member_x, member_y, member_predictions), (nonmember_x, nonmember_y, nonmember_predictions) = shadow_dataset
+
+            ## Execute membership attack
+            attack = MembershipInferenceBlackBox(art_classifier, attack_model_type="rf")
+            attack.fit(member_x, member_y, nonmember_x, nonmember_y, member_predictions, nonmember_predictions)
+
+            member_infer = attack.infer(x_target_train, y_target_train)
+            nonmember_infer = attack.infer(x_target_test, y_target_test)
+
+            # concatenate everything and calculate roc curve
+            predicted_y = np.concatenate((member_infer, nonmember_infer))
+            actual_y = np.concatenate((np.ones(len(member_infer)), np.zeros(len(nonmember_infer))))
+            fpr, tpr, _ = roc_curve(actual_y, predicted_y, pos_label=1)
+            attack_adv = tpr[1] / (tpr[1] + fpr[1])
+            print(tpr[1], fpr[1])
+            shokri_mi_avgs['shokri_mi_adv'].append(tpr[1] - fpr[1])
+            #shokri_mi_avgs['shokri_mi_']
+
+    return pd.DataFrame(shokri_mi_avgs)
+
+def generate_pairwise_perturbation(plain_df, epsilon):
+    max = plain_df.max().max()
+    min = plain_df.min().min()
+    pm_encoder = PMBase(epsilon=epsilon,domain=(min, max))
+    perturbed_df = plain_df.copy()
+    for col in plain_df.columns:
+        perturbed_df[col] = plain_df[col].apply(pm_encoder.randomise)
+    return perturbed_df
+
+def generate_laplace_perturbation(plain_df, epsilon):
+    max = plain_df.max().max()
+    min = plain_df.min().min()
+    lp = laplace.Laplace(epsilon=epsilon, sensitivity=1)
+    perturbed_df = plain_df.copy()
+    for col in plain_df.columns:
+        perturbed_df[col] = plain_df[col].apply(lambda x: lp.randomise(x))
+    return perturbed_df
+
+def generate_gaussian_perturbation(plain_df, epsilon):
+    max = plain_df.max().max()
+    min = plain_df.min().min()
+    gs = gaussian.GaussianAnalytic(epsilon=epsilon, sensitivity=1, delta=0.1)
+    perturbed_df = plain_df.copy()
+    for col in plain_df.columns:
+        perturbed_df[col] = plain_df[col].apply(lambda x: gs.randomise(x))
+    return perturbed_df

@@ -23,7 +23,7 @@ class PMBase(LDPBase):
         z = np.e ** (self._epsilon / 2)
         self._C = (z + 1) / (z - 1)
 
-    def randomize(self, value):
+    def randomise(self, value):
         v = self._check_value(value)
         z = np.e ** (self._epsilon / 2)
 
@@ -87,9 +87,9 @@ class PiecewiseMechanism(LDPBase):
         a, b = self._domain
         return (value * (b-a)+a+b)/2
 
-    def randomize(self, value):
+    def randomise(self, value):
         value = self._transform(value)
-        value = self._pm_encoder.randomize(value)
+        value = self._pm_encoder.randomise(value)
         value = self._transform_T(value)
         return value
 
