@@ -215,7 +215,7 @@ def generate_pairwise_perturbation(plain_df, epsilon):
 def generate_laplace_perturbation(plain_df, epsilon):
     max = plain_df.max().max()
     min = plain_df.min().min()
-    lp = laplace.Laplace(epsilon=epsilon, sensitivity=1)
+    lp = laplace.Laplace(epsilon=epsilon, sensitivity=1/plain_df.size)
     perturbed_df = plain_df.copy()
     for col in plain_df.columns:
         perturbed_df[col] = plain_df[col].apply(lambda x: lp.randomise(x))
@@ -224,7 +224,7 @@ def generate_laplace_perturbation(plain_df, epsilon):
 def generate_gaussian_perturbation(plain_df, epsilon):
     max = plain_df.max().max()
     min = plain_df.min().min()
-    gs = gaussian.GaussianAnalytic(epsilon=epsilon, sensitivity=1, delta=0.1)
+    gs = gaussian.GaussianAnalytic(epsilon=epsilon, sensitivity=1/plain_df.size, delta=0.1)
     perturbed_df = plain_df.copy()
     for col in plain_df.columns:
         perturbed_df[col] = plain_df[col].apply(lambda x: gs.randomise(x))
