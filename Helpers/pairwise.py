@@ -24,7 +24,8 @@ class PMBase(LDPBase):
         self._C = (z + 1) / (z - 1)
 
     def randomise(self, value):
-        v = self._check_value(value)
+        #v = self._check_value(value)
+        v = value
         z = np.e ** (self._epsilon / 2)
 
         P1 = (v + 1) / (2 + 2 * z)
@@ -49,7 +50,7 @@ class PMBase(LDPBase):
         但是当epsilon非常大的时候（比如epsilon=100），这个方法可能出问题，问题的原因在于计算的C=1，进而导致P_h=0
         minor的作用就是防止C=1时候C-1=0，进而导致p_h=0
         """
-        value = self._check_value(value)
+        # value = self._check_value(value)
 
         C = self._C
         p = (np.e ** self._epsilon - np.e ** (self._epsilon / 2)) / (2 * np.e ** (self._epsilon / 2) + 2)
