@@ -17,6 +17,10 @@
 		},
 		{
 			"path": "RQ1"
+		},
+		{
+			"path": "./",
+			"name": "Project files"
 		}
 	],
 	"settings": {}
