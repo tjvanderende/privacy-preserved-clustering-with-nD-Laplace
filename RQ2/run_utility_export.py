@@ -1,6 +1,6 @@
 from matplotlib import pyplot as plt
 from Helpers import UtilityPlotter
-import Helpers.helpers as help
+import Helpers.helpers as helpers
 from sklearn.cluster import DBSCAN, AffinityPropagation, KMeans
 
 
@@ -12,9 +12,8 @@ def models():
     }
 
 # import export
-utility_metrics = help.load_dataset('./export/results/utility-3d.csv')
-utility_metrics.head()
-
+utility_metrics = helpers.load_dataset('./export/results/utility-3d.csv')
+print(utility_metrics.head())
 # run experiments
 plotter = UtilityPlotter.UtilityPlotter('./export/plain.csv', models())
 plotter.plot_external_validation(utility_metrics, export_path='./export/results/', save=True)

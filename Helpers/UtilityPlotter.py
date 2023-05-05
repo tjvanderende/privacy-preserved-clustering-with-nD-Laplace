@@ -45,6 +45,7 @@ class UtilityPlotter:
       #self.add_baseline(self._get_baseline(), 1)
       self.add_legend()
       if save:
+         print('Save external validation plot to ' + export_path + 'ami-and-ari.png')
          self.fig.savefig(export_path + 'ami-and-ari.png')
       
     def plot_internal_validation(self, utility_metrics, export_path = '../export/results/', save=True):
