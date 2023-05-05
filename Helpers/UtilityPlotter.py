@@ -7,18 +7,19 @@ from sklearn.metrics import calinski_harabasz_score, silhouette_score
 import Helpers.helpers as helpers
 
 class UtilityPlotter:
-    def __init__(self, plain_df_location, models, n_subplots = 2):
+    def __init__(self, plain_df_location, models, n_subplots = 2, sharey=False):
         self.n_subplots = n_subplots
         self.dataset = helpers.load_dataset(plain_df_location)
         self.models = models
+        self.sharey = sharey
         self.plotter_data = UtilityPlotterData(self.dataset, 10)
         self.create_plot()
         
-    def _get_baseline(self, type='ch'):
-      return self.plotter_data.calculate_baseline(self.models)[type];
+    def _get_baseline(self, record_type='ch'):
+      return self.plotter_data.calculate_baseline(self.models)[record_type];
       
     def create_plot(self):
-        fig, axs = plt.subplots(2, sharex=True, sharey=True, figsize=(12, 10))
+        fig, axs = plt.subplots(2, sharex=True, sharey=self.sharey, figsize=(12, 10))
         self.fig = fig
         self.axs = axs
 
@@ -40,17 +41,17 @@ class UtilityPlotter:
 
     def plot_external_validation(self, utility_metrics, save=True):
       self.add_utility_plot(utility_metrics, 'ari',self.plotter_data.get_epsilons(), graph_index=0)
-      self.add_utility_plot(utility_metrics, 'ami',self.plotter_data.get_epsilons(), graph_index=1, title='')
-      # self.add_baseline(self._get_baseline(), 1)
+      self.add_utility_plot(utility_metrics, 'ami',self.plotter_data.get_epsilons(), graph_index=1, title='', metric='Adjusted Rand Index (ARI)')
+      #self.add_baseline(self._get_baseline(), 1)
       self.add_legend()
       if save:
          self.fig.savefig('../export/results/ami-and-ari.png')
       
     def plot_internal_validation(self, utility_metrics, save=True):
-       self.add_utility_plot(utility_metrics, 'ch',self.plotter_data.get_epsilons(), graph_index=0)
-       self.add_utility_plot(utility_metrics, 'sc',self.plotter_data.get_epsilons(), graph_index=1, title='')
-       self.add_baseline(self._get_baseline(type='avg_ch'), 0)
-       self.add_baseline(self._get_baseline(type='avg_sc'), 1)
+       self.add_utility_plot(utility_metrics, 'ch',self.plotter_data.get_epsilons(), graph_index=0, metric='Calinski Harabasz (CH)', title='Internal validation of privately trained cluster algorithms \n using the Calinski Harabasz score and silhoutte score')
+       self.add_utility_plot(utility_metrics, 'sc',self.plotter_data.get_epsilons(), graph_index=1, title='', metric='Silhouette score (SC)')
+       self.add_baseline(self._get_baseline(record_type='avg_ch'), 0)
+       self.add_baseline(self._get_baseline(record_type='avg_sc'), 1)
        self.add_legend()
        if save:
           self.fig.savefig('../export/results/ch-and-sc.png')
