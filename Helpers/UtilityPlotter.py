@@ -39,22 +39,22 @@ class UtilityPlotter:
       handles, labels = self.axs[graph_index].get_legend_handles_labels()
       self.axs[graph_index].legend(title='Cluster algorithm', labels=labels, loc='lower center' if pos is None else pos)
 
-    def plot_external_validation(self, utility_metrics, save=True):
+    def plot_external_validation(self, utility_metrics, export_path = '../export/results/', save=True):
       self.add_utility_plot(utility_metrics, 'ari',self.plotter_data.get_epsilons(), graph_index=0)
       self.add_utility_plot(utility_metrics, 'ami',self.plotter_data.get_epsilons(), graph_index=1, title='', metric='Adjusted Rand Index (ARI)')
       #self.add_baseline(self._get_baseline(), 1)
       self.add_legend()
       if save:
-         self.fig.savefig('../export/results/ami-and-ari.png')
+         self.fig.savefig(export_path + 'ami-and-ari.png')
       
-    def plot_internal_validation(self, utility_metrics, save=True):
+    def plot_internal_validation(self, utility_metrics, export_path = '../export/results/', save=True):
        self.add_utility_plot(utility_metrics, 'ch',self.plotter_data.get_epsilons(), graph_index=0, metric='Calinski Harabasz (CH)', title='Internal validation of privately trained cluster algorithms \n using the Calinski Harabasz score and silhoutte score')
        self.add_utility_plot(utility_metrics, 'sc',self.plotter_data.get_epsilons(), graph_index=1, title='', metric='Silhouette score (SC)')
        self.add_baseline(self._get_baseline(record_type='avg_ch'), 0)
        self.add_baseline(self._get_baseline(record_type='avg_sc'), 1)
        self.add_legend()
        if save:
-          self.fig.savefig('../export/results/ch-and-sc.png')
+          self.fig.savefig(export_path + 'ch-and-sc.png')
 
 class UtilityPlotterData: 
   def __init__(self, plain_df, n_times):

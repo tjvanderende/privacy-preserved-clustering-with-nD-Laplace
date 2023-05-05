@@ -21,6 +21,9 @@
 		{
 			"path": "./",
 			"name": "Project files"
+		},
+		{
+			"path": "RQ2"
 		}
 	],
 	"settings": {}
