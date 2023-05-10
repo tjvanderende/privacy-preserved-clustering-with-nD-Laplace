@@ -142,7 +142,6 @@ def plot_utility(dataframe, epsilons, metric_name, axes, metric = 'Adjusted Mutu
 def run_mi_experiments(X, y_true, epsilons, n_times = 10, algorithm = None): 
     shokri_mi_avgs = {'epsilon': [], 'shokri_mi_adv': [], 'run': []}
     #create_labels = KMeans(init='random', n_clusters=4)
-    X_pd = pd.DataFrame(X, columns=['X', 'Y'])
     #create_labels.fit(StandardScaler().fit_transform(X_pd))
     #X_pd['target'] = create_labels.labels_
     for epsilon in epsilons:
@@ -156,7 +155,7 @@ def run_mi_experiments(X, y_true, epsilons, n_times = 10, algorithm = None):
             shokri_mi_avgs['run'].append(run)
 
             shadow_ratio = 0.75
-            dataset = train_test_split(X_pd, y_true, test_size=shadow_ratio)
+            dataset = train_test_split(X, y_true, test_size=shadow_ratio)
 
             x_target, x_shadow, y_target, y_shadow = dataset
 
@@ -173,7 +172,7 @@ def run_mi_experiments(X, y_true, epsilons, n_times = 10, algorithm = None):
             # We infer based on the original data, to make sure we can estimate the dp protection
             #x_shadow_np = X_pd.iloc[x_shadow.index, 0:2].to_numpy()
             #y_shadow_np = X_pd.iloc[y_shadow.index, 2].to_numpy()
-            x_shadow_np = x_shadow.to_numpy()
+            x_shadow_np = x_shadow
             y_shadow_np = y_shadow
             clf = RandomForestClassifier()
             classifier = clf.fit(x_target_train, y_target_train)

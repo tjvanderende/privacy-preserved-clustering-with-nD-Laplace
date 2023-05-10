@@ -47,6 +47,8 @@ class UtilityPlotter:
       if save:
          print('Save external validation plot to ' + export_path + 'ami-and-ari.png')
          self.fig.savefig(export_path + 'ami-and-ari.png')
+         plt.clf()
+
       
     def plot_internal_validation(self, utility_metrics, export_path = '../export/results/', save=True):
        self.add_utility_plot(utility_metrics, 'ch',self.plotter_data.get_epsilons(), graph_index=0, metric='Calinski Harabasz (CH)', title='Internal validation of privately trained cluster algorithms \n using the Calinski Harabasz score and silhoutte score')
@@ -56,6 +58,8 @@ class UtilityPlotter:
        self.add_legend()
        if save:
           self.fig.savefig(export_path + 'ch-and-sc.png')
+          plt.clf()
+
 
 class UtilityPlotterData: 
   def __init__(self, plain_df, n_times):

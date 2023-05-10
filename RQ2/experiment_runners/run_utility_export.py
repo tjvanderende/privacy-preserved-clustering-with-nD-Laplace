@@ -12,8 +12,12 @@ def models():
 
 # import export
 utility_metrics = helpers.load_dataset('./export/results/utility-3d.csv')
+utility_metrics_truncated = helpers.load_dataset('./export/results/truncated-utility-3d.csv')
 print(utility_metrics)
 # run experiments
 plotter = UtilityPlotter.UtilityPlotter('./export/plain.csv', models())
 plotter.plot_external_validation(utility_metrics, export_path='./export/results/', save=True)
+
+plotter2 = UtilityPlotter.UtilityPlotter('./export/plain.csv', models())
+plotter2.plot_external_validation(utility_metrics_truncated, export_path='./export/results/truncated-', save=True)
 print('Done')
