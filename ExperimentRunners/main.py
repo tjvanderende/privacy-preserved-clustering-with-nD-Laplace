@@ -3,11 +3,12 @@ import pandas as pd
 from sklearn.cluster import DBSCAN, AffinityPropagation, KMeans
 import typer
 import seaborn as sns
-from Helpers import helpers, twod_laplace, UtilityPlotter
+from Helpers import helpers, twod_laplace, UtilityPlotter, threed_laplace
 app = typer.Typer()
 
-research_question_1_algorithms = ["2d-laplace-truncated", "2d-pairwise"]
-supported_algorithms = ["2d-laplace-truncated", "2d-pairwise"]
+research_question_1_algorithms = ["2d-laplace-truncated", "2d-pairwise", "2d-laplace"]
+research_question_2_algorithms = ["3d-laplace", "3d-pairwise", "3d-laplace-truncated"]
+supported_algorithms = ["2d-laplace-truncated", "2d-pairwise", "2d-laplace", "3d-laplace", "3d-pairwise", "3d-laplace-truncated"]
 supported_datasets = ["seeds-dataset"]
 dataset_algorithm_features = {
     "2d-laplace-truncated": {
@@ -15,7 +16,21 @@ dataset_algorithm_features = {
     },
     "2d-pairwise": {
         "seeds-dataset": ["area", "perimeter"]
+    },
+    "2d-laplace": {
+        "seeds-dataset": ["area", "perimeter"]
+    },
+    "3d-laplace": {
+        "seeds-dataset": ["area", "perimeter", "length of kernel"]
+    },
+    "3d-pairwise": {
+        "seeds-dataset": ["area", "perimeter", "length of kernel"]
+    },
+    "3d-laplace-truncated": {
+        "seeds-dataset": ["area", "perimeter", "length of kernel"]
     }
+
+
 }
 
 def get_mechanism(algorithm):
@@ -23,13 +38,19 @@ def get_mechanism(algorithm):
         return twod_laplace.generate_truncated_laplace_noise
     if(algorithm == "2d-pairwise"):
         return helpers.generate_pairwise_perturbation
+    if(algorithm == "2d-laplace"):
+        return twod_laplace.generate_laplace_noise_for_dataset
+    if(algorithm == "3d-laplace"):
+        return threed_laplace.generate_3D_noise_for_dataset
+    if(algorithm == "3d-pairwise"):
+        return helpers.generate_pairwise_perturbation
+    if(algorithm == "3d-laplace-truncated"):
+        return threed_laplace.generate_truncated_perturbed_dataset
 
 def get_noise_adding_mechanism(algorithm: str, plain_df: pd.DataFrame, epsilon: float):
     mechanism = get_mechanism(algorithm)
-    if algorithm == "2d-laplace-truncated":
-        return mechanism(plain_df, epsilon)
-    if algorithm == "2d-pairwise":
-        return mechanism(plain_df, epsilon)
+    return mechanism(plain_df, epsilon)
+    
 
 def sanity_check(algorithm: str, dataset: str):
     print("Sanity check")
@@ -50,26 +71,36 @@ def get_export_path(dataset: str, algorithm: str, epsilon: float = None, prefix:
         return f"./{prefix}/{algorithm}/{dataset}/perturbed_{epsilon}.csv"
 
 def get_models(dataset: str, algorithm: str):
-    if(dataset == "seeds-dataset" and algorithm in ["2d-laplace-truncated", "2d-pairwise"]):
+    if(dataset == "seeds-dataset" and algorithm in ["2d-laplace-truncated", "2d-pairwise", "2d-laplace"]):
         return {
            'KMeans': KMeans(n_clusters=3, init='random', algorithm='lloyd'),
             'AffinityPropagation': AffinityPropagation(damping=0.5, affinity='euclidean'),
             'DBSCAN': DBSCAN(min_samples=4, metric='euclidean', eps=0.2)
         }
+    if(dataset == "seeds-dataset" and algorithm in ["3d-laplace", "3d-pairwise", "3d-laplace-truncated"]):
+        return {
+           'KMeans': KMeans(n_clusters=3, init='random', algorithm='lloyd'),
+            'AffinityPropagation': AffinityPropagation(damping=0.5, affinity='euclidean'),
+            'DBSCAN': DBSCAN(min_samples=6, metric='euclidean', eps=0.5)
+        }
 
 def get_models_for_comparison(dataset: str, algorithm: str):
-    if(dataset == "seeds-dataset" and algorithm in ["2d-laplace-truncated", "2d-pairwise"]):
+    if(dataset == "seeds-dataset" and algorithm in ["2d-laplace-truncated", "2d-pairwise", "2d-laplace"]):
         return {
            '2d-pairwise': KMeans(n_clusters=3, init='random', algorithm='lloyd'),
            '2d-laplace-truncated':KMeans(n_clusters=3, init='random', algorithm='lloyd')
         }
+    if(dataset == "seeds-dataset" and algorithm in ["3d-laplace", "3d-pairwise", "3d-laplace-truncated"]):
+        return {
+           '3d-laplace': KMeans(n_clusters=3, init='random', algorithm='lloyd'),
+        }
     
-def plot_comparison(utility_metrics: pd.DataFrame, dataset, metric = "ami", mechanism_comparison = None): 
+def plot_comparison(utility_metrics: pd.DataFrame, dataset, metric = "ami", mechanism_comparison = None, research_question = 'RQ1'): 
     fig, ax = plt.subplots(figsize=(12, 10))
     sns.barplot(x='epsilon', y=metric, hue="algorithm", data=utility_metrics, ax=ax)
     algorithm = utility_metrics.iloc[0]['algorithm'] if mechanism_comparison is None else mechanism_comparison
     ax.set_title(f"Comparison of {metric} for {dataset}. Algorithm: {algorithm}")
-    fig.savefig('results/'+metric+'_'+dataset+'_comparison.png')
+    fig.savefig('results/'+research_question+'/'+metric+'_'+dataset+'_comparison.png')
 
 @app.command()
 def run_utility_experiments(plain_dataset_path: str, algorithm: str, dataset: str):
@@ -104,33 +135,34 @@ def run_utility_experiments(plain_dataset_path: str, algorithm: str, dataset: st
 
 @app.command()
 def run_comparison_experiment(research_question: str):
-    if research_question == 'RQ1':
-        print('Running RQ1')
-        model_name = helpers.map_models_to_name(get_models(dataset='seeds-dataset', algorithm='2d-laplace-truncated')['KMeans'])
-        print('Considering:', model_name)       
-        comparison_dp = pd.DataFrame()
-        comparison_dp_security = pd.DataFrame()
-        for algorithm in research_question_1_algorithms:
-            for dataset in supported_datasets:
-                #external_laplace = helpers.load_dataset(get_export_path('seeds-dataset', '2d-laplace-truncated', prefix='results')+'utility_scores.csv')
-                ultility_metrics = helpers.load_dataset(get_export_path(dataset, algorithm, prefix='results')+'utility_scores.csv')
-                ultility_metrics = ultility_metrics[ultility_metrics['type'] == model_name]
-                ultility_metrics['algorithm'] = algorithm
-
-                privacy_metrics = helpers.load_dataset(get_export_path(dataset, algorithm, prefix='results')+'privacy_scores.csv')
-                privacy_metrics['algorithm'] = algorithm
-
-                #print(ultility_metrics.head())
-                comparison_dp = pd.concat([comparison_dp, ultility_metrics]).reset_index(drop=True)
-                comparison_dp_security = pd.concat([comparison_dp_security, privacy_metrics]).reset_index(drop=True)
-
-        print("Concatenated utility results:", comparison_dp.head())
-        print("Concatenated security results:", comparison_dp_security.head())
-
+    print(f'Running {research_question}')
+    algorithm = '2d-laplace-truncated' if research_question == 'RQ1' else '3d-laplace'
+    algorithms = research_question_1_algorithms if research_question == 'RQ1' else research_question_2_algorithms
+    model_name = helpers.map_models_to_name(get_models(dataset='seeds-dataset', algorithm=algorithm)['KMeans'])
+    print('Considering:', model_name)       
+    comparison_dp = pd.DataFrame()
+    comparison_dp_security = pd.DataFrame()
+    for algorithm in algorithms:
         for dataset in supported_datasets:
-            for metric in ['ami', 'ari', 'ch', 'sc']:
-                plot_comparison(comparison_dp, dataset, metric=metric)
-            plot_comparison(comparison_dp_security, dataset, metric='shokri_mi_adv', mechanism_comparison='Adversary advantage')
+            #external_laplace = helpers.load_dataset(get_export_path('seeds-dataset', '2d-laplace-truncated', prefix='results')+'utility_scores.csv')
+            ultility_metrics = helpers.load_dataset(get_export_path(dataset, algorithm, prefix='results')+'/utility_scores.csv')
+            ultility_metrics = ultility_metrics[ultility_metrics['type'] == model_name]
+            ultility_metrics['algorithm'] = algorithm
+
+            privacy_metrics = helpers.load_dataset(get_export_path(dataset, algorithm, prefix='results')+'/privacy_scores.csv')
+            privacy_metrics['algorithm'] = algorithm
+
+            #print(ultility_metrics.head())
+            comparison_dp = pd.concat([comparison_dp, ultility_metrics]).reset_index(drop=True)
+            comparison_dp_security = pd.concat([comparison_dp_security, privacy_metrics]).reset_index(drop=True)
+
+    print("Concatenated utility results:", comparison_dp.head())
+    print("Concatenated security results:", comparison_dp_security.head())
+
+    for dataset in supported_datasets:
+        for metric in ['ami', 'ari', 'ch', 'sc']:
+            plot_comparison(comparison_dp, dataset, metric=metric, research_question=research_question)
+        plot_comparison(comparison_dp_security, dataset, metric='shokri_mi_adv', mechanism_comparison='Adversary advantage', research_question=research_question)
 
 @app.command()
 def run_privacy_experiments(plain_dataset_path: str, algorithm: str, dataset: str):
@@ -146,10 +178,9 @@ def run_privacy_experiments(plain_dataset_path: str, algorithm: str, dataset: st
     print('run experiments for: ', epsilons)
     
     # --- RUN EXPERIMENTS ---
-    for algorithm in supported_algorithms:
-        for dataset in supported_datasets:
-            privacy_df = helpers.run_mi_experiments(X_features.values, y_target.values, epsilons, algorithm=get_mechanism(algorithm), columns=dataset_algorithm_features[algorithm][dataset], targets=3);
-            privacy_df.to_csv(get_export_path(dataset, algorithm, prefix='results')+'privacy_scores.csv', index=False)
+    privacy_df = helpers.run_mi_experiments(X_features.values, y_target.values, epsilons, algorithm=get_mechanism(algorithm), columns=dataset_algorithm_features[algorithm][dataset], targets=3);
+    privacy_df.to_csv(get_export_path(dataset, algorithm, prefix='results')+'privacy_scores.csv', index=False)
+            
 
 
     

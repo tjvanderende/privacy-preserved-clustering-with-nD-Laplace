@@ -106,3 +106,11 @@ def generate_truncated_laplace_noise(X, epsilon):
         z = truncate(x_max, x_min, x0, z[0], epsilon)
         Z.append([z[0], z[1]])
     return Z
+
+def generate_laplace_noise_for_dataset(X, epsilon):
+    Z = []
+    X = np.array(X)
+    for x0 in X:
+        z, R = calculate_radius_with_noise(x0, 1, epsilon)
+        Z.append(z[0])
+    return Z
