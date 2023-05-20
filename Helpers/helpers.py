@@ -66,7 +66,7 @@ def load_dataset(datasetname):
     return df
 
 def load_plain_and_perturbed_dataset(epsilon, import_path, perturbed_path):
-    dataset_name1 = import_path + 'plain.csv'
+    dataset_name1 = import_path
     dataset_name2 = perturbed_path + 'perturbed_' + str(epsilon) + '.csv'
     dataset1 = load_dataset(dataset_name1)
     dataset2 = load_dataset(dataset_name2)
