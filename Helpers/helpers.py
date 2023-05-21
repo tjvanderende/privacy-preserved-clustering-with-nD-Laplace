@@ -16,6 +16,7 @@ from Helpers import twod_laplace
 from diffprivlib.mechanisms import laplace, gaussian
 
 from Helpers.pairwise import PMBase, PiecewiseMechanism
+from sklearn.neighbors import NearestNeighbors
 
 def elbow_plot(sse):
     from matplotlib import pyplot as plt
@@ -89,8 +90,10 @@ def map_models_to_name(model):
         return 'Not supported'
     
 
-def measure_external_validity_report(epsilon, cluster_model, import_path, perturbed_path):
+def measure_external_validity_report(epsilon, cluster_model, import_path, perturbed_path, columns):
     plain_df, perturbed_df = load_plain_and_perturbed_dataset(epsilon, import_path, perturbed_path)
+    plain_df = plain_df[columns]
+    perturbed_df = perturbed_df[columns]
     plain_df_scaled = StandardScaler().fit_transform(plain_df)
     perturbed_df_scaled = StandardScaler().fit_transform(perturbed_df)
     plain_fitted_df = cluster_model.fit(plain_df_scaled)
@@ -101,7 +104,7 @@ def measure_external_validity_report(epsilon, cluster_model, import_path, pertur
     sc = silhouette_score(perturbed_df_scaled, perturbed_fitted_df.labels_)
     return ami, ari, ch, sc
     
-def generate_external_validity_export(epsilons, models, n_times = 10, import_path='../exports', perturbed_path='../perturbed', model_name= None):
+def generate_external_validity_export(epsilons, models, n_times = 10, import_path='../exports', perturbed_path='../perturbed', model_name= None, columns=['X', 'Y']):
     dataframe = {'type': [], 'epsilon': [], 'ari': [], 'ami': [], 'ch': [], 'sc': []}
     for epsilon in epsilons:
         i = 0
@@ -114,7 +117,7 @@ def generate_external_validity_export(epsilons, models, n_times = 10, import_pat
             ch_list = []
             sc_list = []
             for i in range(n_times):
-                ami, ari, ch, sc = measure_external_validity_report(epsilon, model, import_path, perturbed_path)
+                ami, ari, ch, sc = measure_external_validity_report(epsilon, model, import_path, perturbed_path, columns)
                 ami_list.append(ami)
                 ari_list.append(ari)
                 ch_list.append(ch)
@@ -229,3 +232,15 @@ def generate_gaussian_perturbation(plain_df, epsilon):
     for col in plain_df.columns:
         perturbed_df[col] = plain_df[col].apply(lambda x: gs.randomise(x))
     return perturbed_df
+
+def kDistancePlot(X):
+
+    neigh = NearestNeighbors(n_neighbors=2)
+    neighbours = neigh.fit(X)
+    distances, indices = neighbours.kneighbors(X)
+    distances = np.sort(distances, axis=0)
+    distances = distances[:,1]
+    plt.title('K-distance plot for estimating the epsilon DBSCAN')
+    plt.xlabel('Data points')
+    plt.ylabel('Epsilon')
+    plt.plot(distances)

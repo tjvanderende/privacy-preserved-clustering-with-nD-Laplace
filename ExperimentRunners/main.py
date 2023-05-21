@@ -3,6 +3,7 @@ import pandas as pd
 from sklearn.cluster import DBSCAN, AffinityPropagation, KMeans
 import typer
 import seaborn as sns
+import os.path
 from Helpers import helpers, twod_laplace, UtilityPlotter, threed_laplace
 app = typer.Typer()
 
@@ -12,13 +13,16 @@ supported_algorithms = ["2d-laplace-truncated", "2d-pairwise", "2d-laplace", "3d
 supported_datasets = ["seeds-dataset"]
 dataset_algorithm_features = {
     "2d-laplace-truncated": {
-        "seeds-dataset": ["area", "perimeter"]
+        "seeds-dataset": ["area", "perimeter"],
+        "diabetes-dataset": ["Height", "Weight"],
     },
     "2d-pairwise": {
-        "seeds-dataset": ["area", "perimeter"]
+        "seeds-dataset": ["area", "perimeter"],
+        "diabetes-dataset": ["Height", "Weight"],
     },
     "2d-laplace": {
-        "seeds-dataset": ["area", "perimeter"]
+        "seeds-dataset": ["area", "perimeter"],
+        "diabetes-dataset": ["Height", "Weight"]
     },
     "3d-laplace": {
         "seeds-dataset": ["area", "perimeter", "length of kernel"]
@@ -83,6 +87,12 @@ def get_models(dataset: str, algorithm: str):
             'AffinityPropagation': AffinityPropagation(damping=0.5, affinity='euclidean'),
             'DBSCAN': DBSCAN(min_samples=6, metric='euclidean', eps=0.5)
         }
+    if(dataset == "diabetes-dataset" and algorithm in ["2d-laplace-truncated", "2d-pairwise", "2d-laplace"]):
+        return {
+            'KMeans': KMeans(n_clusters=5, init='random', algorithm='lloyd'),
+            'AffinityPropagation': AffinityPropagation(damping=0.5, affinity='euclidean'),
+            'DBSCAN': DBSCAN(min_samples=4, metric='euclidean', eps=0.1)
+        }
 
 def get_models_for_comparison(dataset: str, algorithm: str):
     if(dataset == "seeds-dataset" and algorithm in ["2d-laplace-truncated", "2d-pairwise", "2d-laplace"]):
@@ -94,6 +104,7 @@ def get_models_for_comparison(dataset: str, algorithm: str):
         return {
            '3d-laplace': KMeans(n_clusters=3, init='random', algorithm='lloyd'),
         }
+    
     
 def plot_comparison(utility_metrics: pd.DataFrame, dataset, metric = "ami", mechanism_comparison = None, research_question = 'RQ1'): 
     fig, ax = plt.subplots(figsize=(12, 10))
@@ -119,18 +130,26 @@ def run_utility_experiments(plain_dataset_path: str, algorithm: str, dataset: st
         
     supported_models = list(get_models(dataset, algorithm).values())
     print('Generated report for: ', supported_models)
+
     # --- RUN CLUSTERING ALGORITHMS ---
-    report = helpers.generate_external_validity_export(
-        epsilons, 
-        supported_models,
-        import_path=plain_dataset_path, 
-        perturbed_path=get_export_path(dataset, algorithm))
-    report.to_csv(get_export_path(dataset, algorithm, prefix='results')+'utility_scores.csv', index=False)
+    utility_dataset = get_export_path(dataset, algorithm, prefix='results')+'utility_scores.csv';
+    report = pd.DataFrame();
+    if os.path.isfile(utility_dataset):
+        print('Loading existing report')
+        report = helpers.load_dataset(utility_dataset)
+    else: 
+        print('Generating new report')
+        report = helpers.generate_external_validity_export(
+            epsilons, 
+            supported_models,
+            import_path=plain_dataset_path, 
+            perturbed_path=get_export_path(dataset, algorithm), columns=features)
+        report.to_csv(get_export_path(dataset, algorithm, prefix='results')+'utility_scores.csv', index=False)
 
     # --- PLOT RESULTS ---
-    utility = UtilityPlotter.UtilityPlotter(plain_dataset_path, get_models(dataset, algorithm))
+    utility = UtilityPlotter.UtilityPlotter(plain_dataset_path, get_models(dataset, algorithm), columns=features)
     utility.plot_external_validation(report, get_export_path(dataset, algorithm, prefix='results'), save=True)
-    utility_internal = UtilityPlotter.UtilityPlotter(plain_dataset_path, get_models(dataset, algorithm))
+    utility_internal = UtilityPlotter.UtilityPlotter(plain_dataset_path, get_models(dataset, algorithm), columns=features)
     utility_internal.plot_internal_validation(report, get_export_path(dataset, algorithm, prefix='results'), save=True)
 
 @app.command()

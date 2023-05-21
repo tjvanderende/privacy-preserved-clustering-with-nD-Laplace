@@ -7,9 +7,11 @@ from sklearn.metrics import calinski_harabasz_score, silhouette_score
 import Helpers.helpers as helpers
 
 class UtilityPlotter:
-    def __init__(self, plain_df_location, models, n_subplots = 2, sharey=False):
+    def __init__(self, plain_df_location, models, n_subplots = 2, sharey=False, columns=['X', 'Y']):
         self.n_subplots = n_subplots
+        self.columns = columns
         self.dataset = helpers.load_dataset(plain_df_location)
+        self.dataset = self.dataset[columns]
         self.models = models
         self.sharey = sharey
         self.plotter_data = UtilityPlotterData(self.dataset, 10)
