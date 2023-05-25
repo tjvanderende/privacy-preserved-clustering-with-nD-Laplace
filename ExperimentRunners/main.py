@@ -5,6 +5,10 @@ import typer
 import seaborn as sns
 import os.path
 from Helpers import helpers, twod_laplace, UtilityPlotter, threed_laplace
+from distutils.dir_util import copy_tree
+
+sns.color_palette("viridis", as_cmap=True)
+
 app = typer.Typer()
 
 research_question_1_algorithms = ["2d-laplace-truncated", "2d-pairwise", "2d-laplace"]
@@ -199,8 +203,7 @@ def run_privacy_experiments(plain_dataset_path: str, algorithm: str, dataset: st
     # --- RUN EXPERIMENTS ---
     privacy_df = helpers.run_mi_experiments(X_features.values, y_target.values, epsilons, algorithm=get_mechanism(algorithm), columns=dataset_algorithm_features[algorithm][dataset], targets=3);
     privacy_df.to_csv(get_export_path(dataset, algorithm, prefix='results')+'privacy_scores.csv', index=False)
-            
-
+        
 
     
 if __name__ == "__main__":

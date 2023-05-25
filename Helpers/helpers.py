@@ -83,7 +83,7 @@ def map_models_to_name(model):
     if(model_name == 'KMeans'):
         return 'KMeans(clusters='+str(parameters['n_clusters'])+', init='+parameters['init']+')'
     elif(model_name == 'DBSCAN'):
-        return 'DBSCAN(samples='+str(parameters['min_samples'])+', distance_metric='+parameters['metric']+', epsilon='+str(parameters['eps'])+')'
+        return 'DBSCAN(samples='+str(parameters['min_samples'])+', distance_metric='+parameters['metric']+', eps='+str(parameters['eps'])+')'
     elif(model_name == 'AffinityPropagation'):
         return 'AffinityPropagation(damping='+str(parameters['damping'])+', distance_metric='+parameters['affinity']+')'
     else: 
