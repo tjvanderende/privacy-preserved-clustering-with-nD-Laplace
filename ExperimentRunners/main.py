@@ -11,16 +11,16 @@ sns.color_palette("viridis", as_cmap=True)
 
 app = typer.Typer()
 
-research_question_1_algorithms = ["2d-laplace-truncated", "2d-pairwise", "2d-laplace"]
-research_question_2_algorithms = ["3d-laplace", "3d-pairwise", "3d-laplace-truncated"]
-supported_algorithms = ["2d-laplace-truncated", "2d-pairwise", "2d-laplace", "3d-laplace", "3d-pairwise", "3d-laplace-truncated"]
+research_question_1_algorithms = ["2d-laplace-truncated", "2d-piecewise", "2d-laplace"]
+research_question_2_algorithms = ["3d-laplace", "3d-piecewise", "3d-laplace-truncated"]
+supported_algorithms = ["2d-laplace-truncated", "2d-piecewise", "2d-laplace", "3d-laplace", "3d-piecewise", "3d-laplace-truncated"]
 supported_datasets = ["seeds-dataset"]
 dataset_algorithm_features = {
     "2d-laplace-truncated": {
         "seeds-dataset": ["area", "perimeter"],
         "diabetes-dataset": ["Height", "Weight"],
     },
-    "2d-pairwise": {
+    "2d-piecewise": {
         "seeds-dataset": ["area", "perimeter"],
         "diabetes-dataset": ["Height", "Weight"],
     },
@@ -31,7 +31,7 @@ dataset_algorithm_features = {
     "3d-laplace": {
         "seeds-dataset": ["area", "perimeter", "length of kernel"]
     },
-    "3d-pairwise": {
+    "3d-piecewise": {
         "seeds-dataset": ["area", "perimeter", "length of kernel"]
     },
     "3d-laplace-truncated": {
@@ -44,14 +44,14 @@ dataset_algorithm_features = {
 def get_mechanism(algorithm):
     if(algorithm == "2d-laplace-truncated"):
         return twod_laplace.generate_truncated_laplace_noise
-    if(algorithm == "2d-pairwise"):
-        return helpers.generate_pairwise_perturbation
+    if(algorithm == "2d-piecewise"):
+        return helpers.generate_piecewise_perturbation
     if(algorithm == "2d-laplace"):
         return twod_laplace.generate_laplace_noise_for_dataset
     if(algorithm == "3d-laplace"):
         return threed_laplace.generate_3D_noise_for_dataset
-    if(algorithm == "3d-pairwise"):
-        return helpers.generate_pairwise_perturbation
+    if(algorithm == "3d-piecewise"):
+        return helpers.generate_piecewise_perturbation
     if(algorithm == "3d-laplace-truncated"):
         return threed_laplace.generate_truncated_perturbed_dataset
 
@@ -79,19 +79,19 @@ def get_export_path(dataset: str, algorithm: str, epsilon: float = None, prefix:
         return f"./{prefix}/{algorithm}/{dataset}/perturbed_{epsilon}.csv"
 
 def get_models(dataset: str, algorithm: str):
-    if(dataset == "seeds-dataset" and algorithm in ["2d-laplace-truncated", "2d-pairwise", "2d-laplace"]):
+    if(dataset == "seeds-dataset" and algorithm in ["2d-laplace-truncated", "2d-piecewise", "2d-laplace"]):
         return {
            'KMeans': KMeans(n_clusters=3, init='random', algorithm='lloyd'),
             'AffinityPropagation': AffinityPropagation(damping=0.5, affinity='euclidean'),
             'DBSCAN': DBSCAN(min_samples=4, metric='euclidean', eps=0.2)
         }
-    if(dataset == "seeds-dataset" and algorithm in ["3d-laplace", "3d-pairwise", "3d-laplace-truncated"]):
+    if(dataset == "seeds-dataset" and algorithm in ["3d-laplace", "3d-piecewise", "3d-laplace-truncated"]):
         return {
            'KMeans': KMeans(n_clusters=3, init='random', algorithm='lloyd'),
             'AffinityPropagation': AffinityPropagation(damping=0.5, affinity='euclidean'),
             'DBSCAN': DBSCAN(min_samples=6, metric='euclidean', eps=0.5)
         }
-    if(dataset == "diabetes-dataset" and algorithm in ["2d-laplace-truncated", "2d-pairwise", "2d-laplace"]):
+    if(dataset == "diabetes-dataset" and algorithm in ["2d-laplace-truncated", "2d-piecewise", "2d-laplace"]):
         return {
             'KMeans': KMeans(n_clusters=5, init='random', algorithm='lloyd'),
             'AffinityPropagation': AffinityPropagation(damping=0.5, affinity='euclidean'),
@@ -99,12 +99,12 @@ def get_models(dataset: str, algorithm: str):
         }
 
 def get_models_for_comparison(dataset: str, algorithm: str):
-    if(dataset == "seeds-dataset" and algorithm in ["2d-laplace-truncated", "2d-pairwise", "2d-laplace"]):
+    if(dataset == "seeds-dataset" and algorithm in ["2d-laplace-truncated", "2d-piecewise", "2d-laplace"]):
         return {
-           '2d-pairwise': KMeans(n_clusters=3, init='random', algorithm='lloyd'),
+           '2d-piecewise': KMeans(n_clusters=3, init='random', algorithm='lloyd'),
            '2d-laplace-truncated':KMeans(n_clusters=3, init='random', algorithm='lloyd')
         }
-    if(dataset == "seeds-dataset" and algorithm in ["3d-laplace", "3d-pairwise", "3d-laplace-truncated"]):
+    if(dataset == "seeds-dataset" and algorithm in ["3d-laplace", "3d-piecewise", "3d-laplace-truncated"]):
         return {
            '3d-laplace': KMeans(n_clusters=3, init='random', algorithm='lloyd'),
         }

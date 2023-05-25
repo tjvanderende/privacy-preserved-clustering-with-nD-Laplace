@@ -17,6 +17,7 @@ from diffprivlib.mechanisms import laplace, gaussian
 
 from Helpers.pairwise import PMBase, PiecewiseMechanism
 from sklearn.neighbors import NearestNeighbors
+from sklearn.preprocessing import MinMaxScaler
 
 def elbow_plot(sse):
     from matplotlib import pyplot as plt
@@ -206,10 +207,10 @@ def run_mi_experiments(X, y_true, epsilons, n_times = 10, algorithm = None, targ
 
     return pd.DataFrame(shokri_mi_avgs)
 
-def generate_pairwise_perturbation(plain_df, epsilon):
+def generate_piecewise_perturbation(plain_df, epsilon):
     max = plain_df.max().max()
     min = plain_df.min().min()
-    pm_encoder = PMBase(epsilon=epsilon)
+    pm_encoder = PiecewiseMechanism(epsilon=epsilon, domain=[-1, 1])
     perturbed_df = plain_df.copy()
     for col in plain_df.columns:
         perturbed_df[col] = plain_df[col].apply(pm_encoder.randomise)
@@ -244,3 +245,6 @@ def kDistancePlot(X):
     plt.xlabel('Data points')
     plt.ylabel('Epsilon')
     plt.plot(distances)
+
+def reshape_data_to_uniform(dataframe: pd.DataFrame):
+    return pd.DataFrame(MinMaxScaler(feature_range=(-1, 1)).fit_transform(dataframe.values), columns=dataframe.columns)
