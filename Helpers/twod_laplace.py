@@ -59,7 +59,7 @@ def calculate_radius_with_noise(x0, n, epsilon):
 
 # ---------------------------------------------
 # ----------------- TRUNCATION ----------------
-def truncate(x_max, x_min, x0, z, epsilon): 
+def truncate(x_max, x_min, x0, z, epsilon, max_iteration = 1000): 
     """
     x_max: max domain point (x, y)
     x_min: min domain point (x, y)
@@ -74,10 +74,12 @@ def truncate(x_max, x_min, x0, z, epsilon):
     if(x1 < zx < x2 and y1 < zy < y2): 
         # print('inside', x, y)
         return z
-    else:
+    elif max_iteration > 0:
         x, y = x0
         z2 = generate_laplace_noise(epsilon, x, y)
-        return truncate(x_max, x_min, x0, z2, epsilon)
+        return truncate(x_max, x_min, x0, z2, epsilon, max_iteration - 1)
+    else:
+         return z
 
 def truncate_array(x0, X, Z, epsilon): 
     truncatedZ1 = []

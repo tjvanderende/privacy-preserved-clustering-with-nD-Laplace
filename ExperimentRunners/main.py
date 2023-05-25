@@ -19,14 +19,18 @@ dataset_algorithm_features = {
     "2d-laplace-truncated": {
         "seeds-dataset": ["area", "perimeter"],
         "diabetes-dataset": ["Height", "Weight"],
+        "adult-dataset": ["age", "fnlwgt"]
     },
     "2d-piecewise": {
         "seeds-dataset": ["area", "perimeter"],
         "diabetes-dataset": ["Height", "Weight"],
+         "adult-dataset": ["age", "fnlwgt"]
+
     },
     "2d-laplace": {
         "seeds-dataset": ["area", "perimeter"],
-        "diabetes-dataset": ["Height", "Weight"]
+        "diabetes-dataset": ["Height", "Weight"],
+        "adult-dataset": ["age", "fnlwgt"]
     },
     "3d-laplace": {
         "seeds-dataset": ["area", "perimeter", "length of kernel"]
@@ -97,6 +101,12 @@ def get_models(dataset: str, algorithm: str):
             'AffinityPropagation': AffinityPropagation(damping=0.5, affinity='euclidean'),
             'DBSCAN': DBSCAN(min_samples=4, metric='euclidean', eps=0.1)
         }
+    if(dataset == "adult-dataset" and algorithm in ["2d-laplace-truncated", "2d-piecewise", "2d-laplace"]):
+        return {
+            'KMeans': KMeans(n_clusters=5, init='random', algorithm='lloyd'),
+            'DBSCAN': DBSCAN(min_samples=4, metric='euclidean', eps=0.3)
+        }
+    
 
 def get_models_for_comparison(dataset: str, algorithm: str):
     if(dataset == "seeds-dataset" and algorithm in ["2d-laplace-truncated", "2d-piecewise", "2d-laplace"]):
@@ -115,17 +125,19 @@ def plot_comparison(utility_metrics: pd.DataFrame, dataset, metric = "ami", mech
     sns.barplot(x='epsilon', y=metric, hue="algorithm", data=utility_metrics, ax=ax)
     algorithm = utility_metrics.iloc[0]['algorithm'] if mechanism_comparison is None else mechanism_comparison
     ax.set_title(f"Comparison of {metric} for {dataset}. Algorithm: {algorithm}")
-    fig.savefig('results/'+research_question+'/'+metric+'_'+dataset+'_comparison.png')
+    fig.savefig('results/'+research_question+'/' + dataset + '/' +metric+'_'+dataset+'_comparison.png')
 
 @app.command()
 def run_utility_experiments(plain_dataset_path: str, algorithm: str, dataset: str):
     print(f"Running utility experiments on {plain_dataset_path} with {algorithm}")
     plain_df = helpers.load_dataset(plain_dataset_path)
-    print(plain_df.head())
     epsilons = helpers.get_experiment_epsilons()
     sanity_check(algorithm, dataset)
     print('run experiments for: ', epsilons)
     features = dataset_algorithm_features[algorithm][dataset]
+    plain_df[features] = helpers.reshape_data_to_uniform(plain_df[features])
+
+    print(plain_df.head())
     # --- RUN PERTURBATION ALGORITHM ---
     for epsilon in epsilons:    
         Z = get_noise_adding_mechanism(algorithm, plain_df[features], epsilon)
@@ -195,6 +207,8 @@ def run_privacy_experiments(plain_dataset_path: str, algorithm: str, dataset: st
     plain_df = helpers.load_dataset(plain_dataset_path)
     y_target = plain_df['class']
     X_features = plain_df[dataset_algorithm_features[algorithm][dataset]]
+    X_features = helpers.reshape_data_to_uniform(X_features)
+
     print('Features: ', X_features.head())
     print('Target', y_target.head())
     epsilons = helpers.get_experiment_epsilons()
