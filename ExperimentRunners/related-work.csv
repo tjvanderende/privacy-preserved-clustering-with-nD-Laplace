@@ -1,0 +1,31 @@
+﻿year,Name,Data type,Dataset,Code implementations,preserving,Type,Property,Interactive,Methods,Privacy
+2021,Private distributed K-means clustering on interval data,,??,-,Local differential privacy,K-Means,Done,Interactive,,
+2021,Locally Private k-Means Clustering,numerical,-,-,Local differential privacy,K-Means,Done,Interactive,,
+2021,Privacy‐preserving mechanism for mixed data clustering with local differential privacy.,n-dimensional numeric & categorical,"Adult dataset, US Census dataset",,Local differential privacy,K-Prototypes,Done,Interactive,LDPK and ELDPK,LDP
+2016,"Collecting and analyzing data from smart device users with local differential ","numerical, binary and categorical data. Domain [-1, 1]","BR (4M records 12 categorical and 6 numeric), US(9M records 17 categorical and 6 numeric)",,Local differential privacy,Differential privacy method,Done,,Harmony,$\epsilon$-LDP
+2013,Optimal data-independent noise for differential privacy.,n-dimensional,-,-,Differential privacy,Differential privacy method,Done,Non interactive,,$(\epsilon)$-DP
+2019," Distributed Clustering in the Anonymized Space with
+Local Differential Privacy,",n-dimensional numerical data,"Aggregation dataset, Digit dataset, Pathbased dataset, Twomoons",-,Local differential privacy,"DBSCAN, K-Means",Done,Non interactive,Distance Aware Bit Vector (DPBV),
+2021,Privacy-preserving Density-based Clustering,,"Deer dataset, Lsun dataset, S1",,Differential privacy,DBSCAN,Done,,ppDBSCAN,
+2020,Distributed K-Means clustering guaranteeing local differential privacy,n-dimensional numerical data,"3D Road Network, CarGPS",-,Local differential privacy,K-Means,Done,Interactive,LDPKmeans,
+,Estimating Numerical Distributions under Local Differential Privacy,,,,,,Not started,,,
+,Differentially Private Compressive k-Means,,,,,,Not started,,,
+,Locally differentially private protocols for frequency estimation,categorical,,,,,Not started,,Optimized Unary Encoding (OUE),
+2022,PrivBV: Distance-aware encoding for distributed data with local differential privacy,,Synthetic dataset,-,Local differential privacy,K-Means,In progress,Non interactive,,"$(\epsilon, \delta)$-LDP"
+2017,Minimax optimal procedures for locally private estimation,1-dimensional numerical data,-,https://github.com/forestneo/sunPytools/blob/master/dplib/ldp_mechanisms/duchi_mechanism.py,Local differential privacy,Differential privacy method,Done,,-,
+2019,Collecting and Analyzing Multidimensional Data with Local Differential Privacy,"n-dimensional (PM), but HM is 1-dimensional and both categorical & numerical within a domain of [-1, 1]","BR, MR","-https://github.com/forestneo/sunPytools/blob/master/dplib/ldp_mechanisms/piecewise_mechanism.py
+- https://github.com/EstebanLeiva/Local-Differential-Privacy",Local differential privacy,Differential privacy method,Done,,"- Piecewise Mechanism (PM)
+- Hybrid Mechanism (HM)
+- Extension of Duchi et al.",
+2011,Differential privacy for location pattern mining,2-dimensional geographical data,Synthetic dataset with GPS trajectories,-,Differential privacy,DBSCAN,Done,,DPQuadTree,
+2020,DP-AP: Differential Privacy-Preserving Affinity Propagation Clustering,,"Iris dataset, Seeds dataset",-,Differential privacy,AffinityPropagation,Done,,DP-AP,
+2015,The staircase mechanism in differential privacy,n-dimensional numerical data,-,https://github.com/IBM/differential-privacy-library (only the 1-dimensional version),Differential privacy,Differential privacy method,Done,,Staircase mechanism (SM),
+2018,Clustering algorithms for the centralized and local models.,n-dimensional numerical data,-,-,Local differential privacy,K-Means,Done,Interactive,LDP-GOODCenter,"$(\epsilon, \delta)$-LDP and $(\epsilon, \delta)$-DP"
+,Optimizing Locally Differentially Private Protocols,,,https://github.com/forestneo/sunPytools/blob/master/dplib/ldp_mechanisms/generalized_randomized_response_mechanism.py,Local differential privacy,Differential privacy method,Not started,,,
+2022,3D Geo-Indistinguishability for Indoor Location-Based Services,3-dimensional geographical data,,-,Geo-indistinguishability,Differential privacy method,Not started,,3-dimensional Laplace mechanism,
+2019,Generalised Differential Privacy for Text Document Processing,n-dimensional (?? data),,-,Differential privacy,Differential privacy method,Not started,,n-dimensional Laplace mechanism,
+2012,Geo-indistinguishability: Differential privacy for location-based systems,2-dimensional geographical data,,-,Geo-indistinguishability,Differential privacy method,Not started,,2-dimensional Laplace mechanism,
+2011,Smooth sensitivity and sampling in private data analysis,n-dimensional numeric,-,-,Local differential privacy,K-Means,Done,Non interactive,Smooth sensitivity for K-Means clustering,"$(\epsilon, \delta)$-LDP"
+2018,Differentially private K-means with constant multiplicative error,,,,,K-Means,Done,Interactive,"- LSH-Procedure
+- Private-Centers","$(\epsilon, \delta)$-DP, $(\epsilon, \delta)$-LDP"
+2015,"Differentially Private k-Means Clustering ",2 - 10-dimensional numerical data,"Adult dataset, Gowalla dataset, Image dataset, Lifesci, S1, TIGER",https://github.com/DongSuIBM/PrivKmeans,Differential privacy,K-Means,Done,Both,EUGkM and hybrid EUGkM + DPLloyd,
