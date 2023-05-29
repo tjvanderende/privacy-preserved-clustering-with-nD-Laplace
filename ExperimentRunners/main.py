@@ -13,24 +13,18 @@ app = typer.Typer()
 
 research_question_1_algorithms = ["2d-laplace-truncated", "2d-piecewise", "2d-laplace"]
 research_question_2_algorithms = ["3d-laplace", "3d-piecewise", "3d-laplace-truncated"]
-supported_algorithms = ["2d-laplace-truncated", "2d-piecewise", "2d-laplace", "3d-laplace", "3d-piecewise", "3d-laplace-truncated"]
+research_question_3_algorithms = ["piecewise", "nd-laplace"]
+supported_algorithms = ["2d-laplace-truncated", "2d-piecewise", "2d-laplace", "3d-laplace", "3d-piecewise", "3d-laplace-truncated", "piecewise", "nd-laplace"]
 supported_datasets = ["seeds-dataset"]
 dataset_algorithm_features = {
     "2d-laplace-truncated": {
         "seeds-dataset": ["area", "perimeter"],
-        "diabetes-dataset": ["Height", "Weight"],
-        "adult-dataset": ["age", "fnlwgt"]
     },
     "2d-piecewise": {
         "seeds-dataset": ["area", "perimeter"],
-        "diabetes-dataset": ["Height", "Weight"],
-         "adult-dataset": ["age", "fnlwgt"]
-
     },
     "2d-laplace": {
         "seeds-dataset": ["area", "perimeter"],
-        "diabetes-dataset": ["Height", "Weight"],
-        "adult-dataset": ["age", "fnlwgt"]
     },
     "3d-laplace": {
         "seeds-dataset": ["area", "perimeter", "length of kernel"]
@@ -40,9 +34,13 @@ dataset_algorithm_features = {
     },
     "3d-laplace-truncated": {
         "seeds-dataset": ["area", "perimeter", "length of kernel"]
+    },
+    "nd-laplace": {
+        "seeds-dataset": ["area","perimeter","compactness","length of kernel","width of kernel","asymmetry coefficient","length of kernel groove"]
+    },
+    "piecewice": {
+        "seeds-dataset": ["area","perimeter","compactness","length of kernel","width of kernel","asymmetry coefficient","length of kernel groove"]
     }
-
-
 }
 
 def get_mechanism(algorithm):
@@ -58,6 +56,10 @@ def get_mechanism(algorithm):
         return helpers.generate_piecewise_perturbation
     if(algorithm == "3d-laplace-truncated"):
         return threed_laplace.generate_truncated_perturbed_dataset
+    if(algorithm == "nd-laplace"):
+        return;
+    if(algorithm == "piecewise"):
+        return;
 
 def get_noise_adding_mechanism(algorithm: str, plain_df: pd.DataFrame, epsilon: float):
     mechanism = get_mechanism(algorithm)
@@ -85,26 +87,15 @@ def get_export_path(dataset: str, algorithm: str, epsilon: float = None, prefix:
 def get_models(dataset: str, algorithm: str):
     if(dataset == "seeds-dataset" and algorithm in ["2d-laplace-truncated", "2d-piecewise", "2d-laplace"]):
         return {
-           'KMeans': KMeans(n_clusters=3, init='random', algorithm='lloyd'),
+           'KMeans': KMeans(n_clusters=4, init='random', algorithm='lloyd'),
             'AffinityPropagation': AffinityPropagation(damping=0.5, affinity='euclidean'),
-            'DBSCAN': DBSCAN(min_samples=4, metric='euclidean', eps=0.2)
+            'DBSCAN': DBSCAN(min_samples=4, metric='euclidean', eps=0.3)
         }
     if(dataset == "seeds-dataset" and algorithm in ["3d-laplace", "3d-piecewise", "3d-laplace-truncated"]):
         return {
-           'KMeans': KMeans(n_clusters=3, init='random', algorithm='lloyd'),
+           'KMeans': KMeans(n_clusters=4, init='random', algorithm='lloyd'),
             'AffinityPropagation': AffinityPropagation(damping=0.5, affinity='euclidean'),
             'DBSCAN': DBSCAN(min_samples=6, metric='euclidean', eps=0.5)
-        }
-    if(dataset == "diabetes-dataset" and algorithm in ["2d-laplace-truncated", "2d-piecewise", "2d-laplace"]):
-        return {
-            'KMeans': KMeans(n_clusters=5, init='random', algorithm='lloyd'),
-            'AffinityPropagation': AffinityPropagation(damping=0.5, affinity='euclidean'),
-            'DBSCAN': DBSCAN(min_samples=4, metric='euclidean', eps=0.1)
-        }
-    if(dataset == "adult-dataset" and algorithm in ["2d-laplace-truncated", "2d-piecewise", "2d-laplace"]):
-        return {
-            'KMeans': KMeans(n_clusters=5, init='random', algorithm='lloyd'),
-            'DBSCAN': DBSCAN(min_samples=4, metric='euclidean', eps=0.3)
         }
     
 

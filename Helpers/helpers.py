@@ -75,7 +75,7 @@ def load_plain_and_perturbed_dataset(epsilon, import_path, perturbed_path):
     return dataset1, dataset2
 
 def get_experiment_epsilons():
-    epsilons = [0.05, 0.1 , 0.5 , 1, 2, 3, 5, 7, 9]
+    epsilons = [0.1 , 0.5 , 1, 2, 3, 5, 7, 9]
     return epsilons
     
 def map_models_to_name(model): 
