@@ -87,6 +87,8 @@ def map_models_to_name(model):
         return 'DBSCAN(samples='+str(parameters['min_samples'])+', distance_metric='+parameters['metric']+', eps='+str(parameters['eps'])+')'
     elif(model_name == 'AffinityPropagation'):
         return 'AffinityPropagation(damping='+str(parameters['damping'])+', distance_metric='+parameters['affinity']+')'
+    elif(model_name == 'OPTICS'):
+        return 'OPTICS(min_samples='+str(parameters['min_samples'])+', distance_metric='+parameters['metric']+')'
     else: 
         return 'Not supported'
     
@@ -108,7 +110,6 @@ def measure_external_validity_report(epsilon, cluster_model, import_path, pertur
 def generate_external_validity_export(epsilons, models, n_times = 10, import_path='../exports', perturbed_path='../perturbed', model_name= None, columns=['X', 'Y']):
     dataframe = {'type': [], 'epsilon': [], 'ari': [], 'ami': [], 'ch': [], 'sc': []}
     for epsilon in epsilons:
-        i = 0
         for model in models:
             algorithmName = model_name if model_name is not None else map_models_to_name(model)
             dataframe['type'].append(algorithmName)
@@ -130,7 +131,6 @@ def generate_external_validity_export(epsilons, models, n_times = 10, import_pat
             dataframe['ari'].append(ari)
             dataframe['ch'].append(np.sum(ch_list) / n_times)
             dataframe['sc'].append(np.sum(sc_list) / n_times)
-            i += 1
     return pd.DataFrame(dataframe)
 
 
@@ -208,9 +208,8 @@ def run_mi_experiments(X, y_true, epsilons, n_times = 10, algorithm = None, targ
     return pd.DataFrame(shokri_mi_avgs)
 
 def generate_piecewise_perturbation(plain_df, epsilon):
-    max = plain_df.max().max()
-    min = plain_df.min().min()
-    pm_encoder = PiecewiseMechanism(epsilon=epsilon, domain=[-1, 1])
+    plain_df = reshape_data_to_uniform(plain_df) # resphape to [-1, 1] (rquired by the algorithm)
+    pm_encoder = PiecewiseMechanism(epsilon=epsilon, domain=[-1.001, 1.001])
     perturbed_df = plain_df.copy()
     for col in plain_df.columns:
         perturbed_df[col] = plain_df[col].apply(pm_encoder.randomise)
