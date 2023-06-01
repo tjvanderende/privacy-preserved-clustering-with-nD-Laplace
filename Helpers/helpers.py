@@ -144,7 +144,7 @@ def plot_utility(dataframe, epsilons, metric_name, axes, metric = 'Adjusted Mutu
 
     
 def run_mi_experiments(X, y_true, epsilons, n_times = 10, algorithm = None, targets = 4, columns=['X', 'Y']): 
-    shokri_mi_avgs = {'epsilon': [], 'shokri_mi_adv': [], 'run': []}
+    shokri_mi_avgs = {'epsilon': [], 'shokri_mi_adv': [], 'attack_adv': [], 'tpr': [], 'fpr': [], 'run': []}
     X_pd = pd.DataFrame(X, columns=columns)
     #create_labels = KMeans(init='random', n_clusters=4)
     #create_labels.fit(StandardScaler().fit_transform(X_pd))
@@ -159,7 +159,7 @@ def run_mi_experiments(X, y_true, epsilons, n_times = 10, algorithm = None, targ
             shokri_mi_avgs['epsilon'].append(epsilon)
             shokri_mi_avgs['run'].append(run)
 
-            shadow_ratio = 0.75
+            shadow_ratio = 0.50
             dataset = train_test_split(X_pd, y_true, test_size=shadow_ratio)
 
             x_target, x_shadow, y_target, y_shadow = dataset
@@ -203,6 +203,9 @@ def run_mi_experiments(X, y_true, epsilons, n_times = 10, algorithm = None, targ
             attack_adv = tpr[1] / (tpr[1] + fpr[1])
             print(tpr[1], fpr[1])
             shokri_mi_avgs['shokri_mi_adv'].append(tpr[1] - fpr[1])
+            shokri_mi_avgs['attack_adv'].append(attack_adv)
+            shokri_mi_avgs['tpr'].append(tpr[1])
+            shokri_mi_avgs['fpr'].append(fpr[1])
             #shokri_mi_avgs['shokri_mi_']
 
     return pd.DataFrame(shokri_mi_avgs)
