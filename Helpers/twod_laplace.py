@@ -2,7 +2,7 @@
 import math
 import random
 import numpy as np
-
+from Helpers import helpers
 
 #Define Lambda distribution
 def LambertW(x):
@@ -105,9 +105,10 @@ def generate_truncated_laplace_noise(X, epsilon):
     x_min = [np.min(X[:, 0]), np.min(X[:, 1])]
     for x0 in X:
         z, R = calculate_radius_with_noise(x0, 1, epsilon)
-        z = truncate(x_max, x_min, x0, z[0], epsilon)
-        Z.append([z[0], z[1]])
-    return Z
+        #z = truncate(x_max, x_min, x0, z[0], epsilon)
+        Z.append(z[0])
+    Z = np.array(Z)
+    return helpers.truncate_n_dimensional_laplace_noise(Z, X, grid_size=12)
 
 def generate_laplace_noise_for_dataset(X, epsilon):
     Z = []
