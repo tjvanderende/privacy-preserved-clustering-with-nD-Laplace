@@ -14,6 +14,7 @@ from art.attacks.inference.membership_inference import ShadowModels
 from art.estimators.classification.scikitlearn import ScikitlearnRandomForestClassifier
 from Helpers import twod_laplace
 from diffprivlib.mechanisms import laplace, gaussian
+from scipy.spatial import cKDTree
 
 from Helpers.pairwise import PMBase, PiecewiseMechanism
 from sklearn.neighbors import NearestNeighbors
@@ -250,3 +251,43 @@ def kDistancePlot(X):
 
 def reshape_data_to_uniform(dataframe: pd.DataFrame):
     return pd.DataFrame(MinMaxScaler(feature_range=(-1, 1)).fit_transform(dataframe.values), columns=dataframe.columns)
+
+
+def truncate_n_dimensional_laplace_noise(perturbed_df: np.array, plain_df: np.array, grid_size=10):
+    mesh = [np.linspace(plain_df[:, i].min(), plain_df[:, i].max(), num=grid_size) for i in range(plain_df.shape[1])]
+    meshgrid = np.meshgrid(*mesh, indexing='ij')
+     # Create a KDTree from dataset2
+    tree = cKDTree(plain_df)
+
+    # Query the KDTree with dataset1 to find the closest points in dataset2
+    _, closest_indices = tree.query(perturbed_df)
+
+    # Calculate the distances between dataset1 and closest points in dataset2
+    distances = np.linalg.norm(perturbed_df - plain_df[closest_indices], axis=1)
+
+    # Reshape the meshgrid array
+    meshgrid_reshaped = np.stack(meshgrid, axis=-1)
+
+    # Create a KDTree from meshgrid
+    meshgrid_tree = cKDTree(meshgrid_reshaped.reshape(-1, meshgrid_reshaped.shape[-1]))
+
+    # Query the KDTree with dataset1 to find the closest points in meshgrid
+    _, closest_meshgrid_indices = meshgrid_tree.query(perturbed_df)
+
+    # Calculate the distances between dataset1 and closest points in meshgrid
+    meshgrid_distances = np.linalg.norm(perturbed_df - meshgrid_reshaped.reshape(-1, meshgrid_reshaped.shape[-1])[closest_meshgrid_indices], axis=1)
+
+    # Check if each point in dataset1 is within the domain of dataset2
+    in_domain = np.logical_and.reduce([np.logical_and(perturbed_df[:, dim] >= plain_df[:, dim].min(), perturbed_df[:, dim] <= plain_df[:, dim].max()) for dim in range(perturbed_df.shape[1])])
+
+    # Create a mask for points outside the domain of dataset2
+    outside_domain_mask = np.logical_not(in_domain)
+
+    # Create a mask for points outside the domain and closer to meshgrid points
+    outside_domain_and_closer_mask = np.logical_and(outside_domain_mask, meshgrid_distances < distances)
+
+    # Remap points outside the domain and closer to meshgrid points to the closest meshgrid points
+    remapped_dataset = perturbed_df.copy()
+    remapped_dataset[outside_domain_and_closer_mask] = meshgrid_reshaped.reshape(-1, meshgrid_reshaped.shape[-1])[closest_meshgrid_indices][outside_domain_and_closer_mask]
+
+    return remapped_dataset
