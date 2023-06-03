@@ -3,6 +3,7 @@ import random
 import numpy as np
 import pandas as pd
 from scipy.stats import gamma
+from Helpers import helpers
 
 def spherepicking(n):
     while True:           #to get rid off [0,0,0,0] case
@@ -36,3 +37,8 @@ def generate_nd_laplace_noise_for_dataset(dataframe: pd.DataFrame, epsilon: floa
         perturbed_row = generate_nd_laplace_noise(row, epsilon)
         Z.append(perturbed_row)
     return pd.DataFrame(Z, columns=dataframe.columns)
+
+def generate_truncated_nd_laplace_noise_for_dataset(X: pd.DataFrame, epsilon):
+    Z_pd = generate_nd_laplace_noise_for_dataset(X, epsilon)
+    Z = Z_pd
+    return helpers.truncate_n_dimensional_laplace_noise(Z, X, 10)

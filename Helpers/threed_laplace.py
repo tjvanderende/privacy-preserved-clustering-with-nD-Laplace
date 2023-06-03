@@ -1,6 +1,7 @@
 
 import numpy as np
 from scipy.stats import gamma
+from Helpers import helpers 
 
 def generate_unit_sphere(): 
     vector = np.random.randn(3)
@@ -75,9 +76,9 @@ def remap_to_closted(perturbed_dataset, original_dataset, grid):
 
 def generate_truncated_perturbed_dataset(X, epsilon):
     X = np.array(X)
-    meshgrid = np.meshgrid(np.linspace(X[:, 0].min(), X[:, 0].max(), num=6), np.linspace(X[:, 1].min(), X[:, 1].max(), num=6), np.linspace(X[:, 2].min(), X[:, 2].max(), num=6), indexing='ij')
+    # meshgrid = np.meshgrid(np.linspace(X[:, 0].min(), X[:, 0].max(), num=6), np.linspace(X[:, 1].min(), X[:, 1].max(), num=6), np.linspace(X[:, 2].min(), X[:, 2].max(), num=6), indexing='ij')
 
     Z = generate_3D_noise_for_dataset(X, epsilon)
     Z = np.array(Z)
-    Z = remap_to_closted(Z, X, meshgrid)
-    return Z
+
+    return helpers.truncate_n_dimensional_laplace_noise(Z, X, 12)
