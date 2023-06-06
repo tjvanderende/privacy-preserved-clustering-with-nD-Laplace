@@ -130,19 +130,19 @@ def get_models(dataset: str, algorithm: str):
         return {
             'KMeans': KMeans(n_clusters=4, init='random', algorithm='lloyd'),
             # 'AffinityPropagation': AffinityPropagation(damping=0.5, affinity='euclidean'),
-            'OPTICS': OPTICS(min_samples=3, metric='euclidean')
+            'OPTICS': OPTICS(min_samples=4, metric='euclidean')
         }
     if(dataset == "heart-dataset" and algorithm in ['3d-laplace-truncated', '3d-laplace', '3d-piecewise']):
         return {
             'KMeans': KMeans(n_clusters=4, init='random', algorithm='lloyd'),
             # 'AffinityPropagation': AffinityPropagation(damping=0.5, affinity='euclidean'),
-            'OPTICS': OPTICS(min_samples=5, metric='euclidean')
+            'OPTICS': OPTICS(min_samples=6, metric='euclidean')
         }
     if(dataset == "heart-dataset" and algorithm in ["nd-piecewise", "nd-laplace", "nd-laplace-truncated"]):
         return {
            'KMeans': KMeans(n_clusters=4, init='random', algorithm='lloyd'),
             # 'AffinityPropagation': AffinityPropagation(damping=0.5, affinity='euclidean'),
-           'OPTICS': OPTICS(min_samples=5, metric='euclidean')
+           'OPTICS': OPTICS(min_samples=7, metric='euclidean')
         }
 def get_models_for_comparison(dataset: str, algorithm: str):
     if(dataset == "seeds-dataset" and algorithm in ["2d-laplace-truncated", "2d-piecewise", "2d-laplace"]):
@@ -167,12 +167,14 @@ def get_models_for_comparison(dataset: str, algorithm: str):
             '2d-piecewise': KMeans(n_clusters=4, init='random', algorithm='lloyd')
         }
     
-def plot_comparison(utility_metrics: pd.DataFrame, dataset, metric = "ami", mechanism_comparison = None, research_question = 'RQ1'): 
+def plot_comparison(utility_metrics: pd.DataFrame, dataset, algorithm_type, metric = "ami", mechanism_comparison = None, research_question = 'RQ1'): 
     fig, ax = plt.subplots(figsize=(12, 10))
-    sns.barplot(x='epsilon', y=metric, hue="algorithm", data=utility_metrics, ax=ax)
+    sns.barplot(x='epsilon', y=metric, hue="algorithm", data=utility_metrics, ax=ax, errorbar=None)
     algorithm = utility_metrics.iloc[0]['algorithm'] if mechanism_comparison is None else mechanism_comparison
-    ax.set_title(f"Comparison of {metric} for {dataset}. Algorithm: {algorithm}")
+    features = dataset_algorithm_features[algorithm_type][dataset]
+    ax.set_title(f"Comparison of {metric} for {dataset}. Algorithm: {algorithm}. Dimensions: {len(features)}")
     fig.savefig('results/'+research_question+'/' + dataset + '/' +metric+'_'+dataset+'_comparison.png')
+    plt.clf()
 
 def create_directory_if_nonexistent(path):
     if not os.path.exists(path):
@@ -222,11 +224,11 @@ def run_utility_experiments(plain_dataset_path: str, algorithm: str, dataset: st
     utility_internal.plot_internal_validation(report, get_export_path(dataset, algorithm, prefix='results'), save=True)
 
 @app.command()
-def run_comparison_experiment(research_question: str):
+def run_comparison_experiment(research_question: str, dataset: str):
     print(f'Running {research_question}')
     algorithm = '2d-laplace-truncated' if research_question == 'RQ1' else '3d-laplace' if research_question == 'RQ2' else 'nd-laplace'
     algorithms = research_question_1_algorithms if research_question == 'RQ1' else research_question_2_algorithms if research_question == 'RQ2' else research_question_3_algorithms
-    model_name = helpers.map_models_to_name(get_models(dataset='seeds-dataset', algorithm=algorithm)['KMeans'])
+    model_name = helpers.map_models_to_name(get_models(dataset=dataset, algorithm=algorithm)['KMeans'])
     print('Considering:', model_name)       
     comparison_dp = pd.DataFrame()
     comparison_dp_security = pd.DataFrame()
@@ -240,21 +242,22 @@ def run_comparison_experiment(research_question: str):
             ultility_metrics = ultility_metrics[ultility_metrics['type'] == model_name]
             ultility_metrics['algorithm'] = algorithm
 
+            print(dataset, algorithm)
             privacy_metrics = helpers.load_dataset(get_export_path(dataset, algorithm, prefix='results')+'/privacy_scores.csv')
             privacy_metrics['algorithm'] = algorithm
 
             #print(ultility_metrics.head())
             comparison_dp = pd.concat([comparison_dp, ultility_metrics]).reset_index(drop=True)
             comparison_dp_security = pd.concat([comparison_dp_security, privacy_metrics]).reset_index(drop=True)
+            plot_comparison(comparison_dp_security, dataset, algorithm, metric='shokri_mi_adv', mechanism_comparison='Adversary advantage', research_question=research_question)
+            for metric in ['ami', 'ari', 'ch', 'sc']:
+                plot_comparison(comparison_dp, dataset, algorithm, metric=metric, research_question=research_question)
+
 
     print("Concatenated utility results:", comparison_dp.head())
     print("Concatenated security results:", comparison_dp_security.head())
 
-    for dataset in supported_datasets:
-        for metric in ['ami', 'ari', 'ch', 'sc']:
-            plot_comparison(comparison_dp, dataset, metric=metric, research_question=research_question)
-        plot_comparison(comparison_dp_security, dataset, metric='shokri_mi_adv', mechanism_comparison='Adversary advantage', research_question=research_question)
-
+ 
 @app.command()
 def run_privacy_experiments(plain_dataset_path: str, algorithm: str, dataset: str):
     print(f"Running privacy experiments on {plain_dataset_path} with {algorithm}")
@@ -272,7 +275,7 @@ def run_privacy_experiments(plain_dataset_path: str, algorithm: str, dataset: st
     targets = np.unique(y_target).size
     print('Target amount', targets);
     # --- RUN EXPERIMENTS ---
-    privacy_df = helpers.run_mi_experiments(X_features.values, y_target.values, epsilons, algorithm=get_mechanism(algorithm), columns=dataset_algorithm_features[algorithm][dataset], targets=targets);
+    privacy_df = helpers.run_mi_experiments(X_features.values, y_target.values, epsilons, algorithm=get_mechanism(algorithm), n_times=50, columns=dataset_algorithm_features[algorithm][dataset], targets=targets);
     privacy_df.to_csv(get_export_path(dataset, algorithm, prefix='results')+'privacy_scores.csv', index=False)
         
 
