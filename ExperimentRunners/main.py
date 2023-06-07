@@ -229,12 +229,13 @@ def run_comparison_experiment(research_question: str, dataset: str):
     algorithm = '2d-laplace-truncated' if research_question == 'RQ1' else '3d-laplace' if research_question == 'RQ2' else 'nd-laplace'
     algorithms = research_question_1_algorithms if research_question == 'RQ1' else research_question_2_algorithms if research_question == 'RQ2' else research_question_3_algorithms
     model_name = helpers.map_models_to_name(get_models(dataset=dataset, algorithm=algorithm)['KMeans'])
+
     print('Considering:', model_name)       
-    comparison_dp = pd.DataFrame()
-    comparison_dp_security = pd.DataFrame()
     print('Algorithms', algorithms)
-    for algorithm in algorithms:
-        for dataset in supported_datasets:
+    for dataset in supported_datasets:
+        comparison_dp = pd.DataFrame()
+        comparison_dp_security = pd.DataFrame()
+        for algorithm in algorithms:
             create_directory_if_nonexistent(get_export_path(dataset, research_question, prefix='results'))
 
             #external_laplace = helpers.load_dataset(get_export_path('seeds-dataset', '2d-laplace-truncated', prefix='results')+'utility_scores.csv')
@@ -244,15 +245,18 @@ def run_comparison_experiment(research_question: str, dataset: str):
 
             print(dataset, algorithm)
             privacy_metrics = helpers.load_dataset(get_export_path(dataset, algorithm, prefix='results')+'/privacy_scores.csv')
-            privacy_metrics['algorithm'] = algorithm
+            privacy_metrics['algorithm'] = algorithm            
 
-            #print(ultility_metrics.head())
+
             comparison_dp = pd.concat([comparison_dp, ultility_metrics]).reset_index(drop=True)
             comparison_dp_security = pd.concat([comparison_dp_security, privacy_metrics]).reset_index(drop=True)
-            plot_comparison(comparison_dp_security, dataset, algorithm, metric='shokri_mi_adv', mechanism_comparison='Adversary advantage', research_question=research_question)
-            for metric in ['ami', 'ari', 'ch', 'sc']:
-                plot_comparison(comparison_dp, dataset, algorithm, metric=metric, research_question=research_question)
 
+        ## DATASET LEVEL ## 
+        plot_comparison(comparison_dp_security, dataset, algorithm, metric='shokri_mi_adv', mechanism_comparison='Adversary advantage', research_question=research_question)    
+        roc_plot_title = 'ROC plot on '+ dataset + '/n with shape: ' + str(ultility_metrics.shape)
+        helpers.display_roc_plot(comparison_dp_security, algorithms, title=roc_plot_title, save_as = get_export_path(dataset, research_question, prefix='results')+'roc_plot.png')
+        for metric in ['ami', 'ari', 'ch', 'sc']:
+            plot_comparison(comparison_dp, dataset, algorithm, metric=metric, research_question=research_question)
 
     print("Concatenated utility results:", comparison_dp.head())
     print("Concatenated security results:", comparison_dp_security.head())

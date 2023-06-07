@@ -15,7 +15,7 @@ from art.estimators.classification.scikitlearn import ScikitlearnRandomForestCla
 from Helpers import twod_laplace
 from diffprivlib.mechanisms import laplace, gaussian
 from scipy.spatial import cKDTree
-
+from itertools import cycle
 from Helpers.pairwise import PMBase, PiecewiseMechanism
 from sklearn.neighbors import NearestNeighbors
 from sklearn.preprocessing import MinMaxScaler
@@ -208,8 +208,6 @@ def run_mi_experiments(X, y_true, epsilons, n_times = 10, algorithm = None, targ
             shokri_mi_avgs['tpr'].append(tpr)
             shokri_mi_avgs['fpr'].append(fpr)
 
-            #shokri_mi_avgs['shokri_mi_']
-
     return pd.DataFrame(shokri_mi_avgs)
 
 def generate_piecewise_perturbation(plain_df, epsilon):
@@ -220,26 +218,7 @@ def generate_piecewise_perturbation(plain_df, epsilon):
         perturbed_df[col] = plain_df[col].apply(pm_encoder.randomise)
     return perturbed_df
 
-def generate_laplace_perturbation(plain_df, epsilon):
-    max = plain_df.max().max()
-    min = plain_df.min().min()
-    lp = laplace.Laplace(epsilon=epsilon, sensitivity=0.00988)
-    perturbed_df = plain_df.copy()
-    for col in plain_df.columns:
-        perturbed_df[col] = plain_df[col].apply(lambda x: lp.randomise(x))
-    return perturbed_df
-
-def generate_gaussian_perturbation(plain_df, epsilon):
-    max = plain_df.max().max()
-    min = plain_df.min().min()
-    gs = gaussian.GaussianAnalytic(epsilon=epsilon, sensitivity=0.00988, delta=0.1)
-    perturbed_df = plain_df.copy()
-    for col in plain_df.columns:
-        perturbed_df[col] = plain_df[col].apply(lambda x: gs.randomise(x))
-    return perturbed_df
-
 def kDistancePlot(X):
-
     neigh = NearestNeighbors(n_neighbors=2)
     neighbours = neigh.fit(X)
     distances, indices = neighbours.kneighbors(X)
@@ -292,3 +271,37 @@ def truncate_n_dimensional_laplace_noise(perturbed_df: np.array, plain_df: np.ar
     remapped_dataset[outside_domain_and_closer_mask] = meshgrid_reshaped.reshape(-1, meshgrid_reshaped.shape[-1])[closest_meshgrid_indices][outside_domain_and_closer_mask]
 
     return remapped_dataset
+
+
+def prepare_for_roc(mi_scores):
+    mi_scores_for_display = mi_scores.copy()
+    #mi_scores_eps_1 = mi_scores_for_display[mi_scores_for_display['epsilon'] == 0.1]
+    mi_scores_for_display['tpr'] = mi_scores_for_display['tpr'].apply(lambda x: float(x.strip('[]').split()[1]) if type(x) is not float else x)
+    mi_scores_for_display['fpr'] = mi_scores_for_display['fpr'].apply(lambda x: float(x.strip('[]').split()[1]) if type(x) is not float else x)
+    extra_point = pd.DataFrame({'fpr': [0.0], 'tpr': [0.0]})
+    #extra_point2 = pd.DataFrame({'fpr': [1.0], 'tpr': [1.0]})
+    return pd.concat([mi_scores_for_display, extra_point], ignore_index=True)
+
+def display_roc_plot(mi_scores, types, title = 'ROC Curve', save_as = None):
+    #fig, ax = plt.subplots(figsize=(8, 6))
+    #display = RocCurveDisplay(fpr=mi_scores_for_display['fpr'].sort_values(), tpr=mi_scores_for_display['tpr'].sort_values()).plot(ax)
+    line_styles = cycle(['-', '--', '-.', ':'])
+    fig, ax = plt.subplots(figsize=(12, 10))
+
+    # sns.lineplot(x=mi_scores['fpr'].sort_values(), y=mi_scores['tpr'].sort_values())
+    for score_type in types:
+        linestyle = next(line_styles)
+        mi_scores_for_display = prepare_for_roc(mi_scores.loc[mi_scores['algorithm'] == score_type])
+        plt.plot(mi_scores_for_display['fpr'].sort_values(), mi_scores_for_display['tpr'].sort_values(), lw=2, label=score_type, linestyle=linestyle)
+    #plt.plot(mi_scores['fpr'].sort_values(), mi_scores['tpr'].sort_values(), lw=2)
+    # disabling the offset on y axis
+
+    ax.set_title(title)
+    ax.set_ylabel("True Positive Rate")
+    ax.set_xlabel("Flase Positive Rate")
+    ax.plot([0, 1], [0, 1],'r--', label='Random Guess')
+    ax.set_xlim([-0.05, 1.02])  # Set the x-axis limits from 0 to 1
+    ax.set_ylim([-0.05, 1.02])  # Set the y-axis limits from 0 to 1
+    ax.legend(loc="lower right")
+    if(save_as is not None):
+        fig.savefig(save_as)

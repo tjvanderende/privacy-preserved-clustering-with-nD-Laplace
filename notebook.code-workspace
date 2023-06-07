@@ -27,6 +27,9 @@
 		},
 		{
 			"path": "ExperimentRunners"
+		},
+		{
+			"path": "RQ3"
 		}
 	],
 	"settings": {}
