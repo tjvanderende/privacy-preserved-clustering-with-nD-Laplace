@@ -14,7 +14,7 @@ from art.attacks.inference.membership_inference import ShadowModels
 from art.estimators.classification.scikitlearn import ScikitlearnRandomForestClassifier
 from Helpers import twod_laplace
 from diffprivlib.mechanisms import laplace, gaussian
-from scipy.spatial import cKDTree
+from scipy.spatial import KDTree
 from itertools import cycle
 from Helpers.pairwise import PMBase, PiecewiseMechanism
 from sklearn.neighbors import NearestNeighbors
@@ -237,7 +237,7 @@ def truncate_n_dimensional_laplace_noise(perturbed_df: np.array, plain_df: np.ar
     mesh = [np.linspace(plain_df[:, i].min(), plain_df[:, i].max(), num=grid_size) for i in range(plain_df.shape[1])]
     meshgrid = np.meshgrid(*mesh, indexing='ij')
      # Create a KDTree from dataset2
-    tree = cKDTree(plain_df)
+    tree = KDTree(plain_df)
 
     # Query the KDTree with dataset1 to find the closest points in dataset2
     _, closest_indices = tree.query(perturbed_df)
@@ -249,7 +249,7 @@ def truncate_n_dimensional_laplace_noise(perturbed_df: np.array, plain_df: np.ar
     meshgrid_reshaped = np.stack(meshgrid, axis=-1)
 
     # Create a KDTree from meshgrid
-    meshgrid_tree = cKDTree(meshgrid_reshaped.reshape(-1, meshgrid_reshaped.shape[-1]))
+    meshgrid_tree = KDTree(meshgrid_reshaped.reshape(-1, meshgrid_reshaped.shape[-1]))
 
     # Query the KDTree with dataset1 to find the closest points in meshgrid
     _, closest_meshgrid_indices = meshgrid_tree.query(perturbed_df)

@@ -21,9 +21,14 @@ def generate_3D_noise_for_dataset(X, epsilon):
         z = x + noise
         Z.append(z)
     return Z
+
+def generate_r(epsilon):
+    r = gamma.rvs(3, scale=1/epsilon)
+    return r
+
 def generate_3D_noise(epsilon): 
     polar_angle, azimuth, _ = generate_unit_sphere() # theta, psi
-    r = gamma.rvs(3, scale=1/epsilon)
+    r = generate_r(epsilon)
     # theta = 2 * np.pi * u[0]
     #theta = np.random.rand() * np.pi
     #phi = np.arccos(2 * u[1] - 1)
