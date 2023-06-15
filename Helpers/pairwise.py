@@ -105,7 +105,7 @@ def myrun():
     # data = np.clip(np.random.laplace(loc=100, scale=20, size=10), domain[0], domain[1])
     pm_encoder = PiecewiseMechanism(epsilon=100, domain=domain)
     a = 200
-    print(pm_encoder.randomize(a))
+    print(pm_encoder.randomise(a))
 
 
 if __name__ == '__main__':
