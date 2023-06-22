@@ -233,7 +233,7 @@ def reshape_data_to_uniform(dataframe: pd.DataFrame):
     return pd.DataFrame(MinMaxScaler(feature_range=(-1, 1)).fit_transform(dataframe.values), columns=dataframe.columns)
 
 
-def truncate_n_dimensional_laplace_noise(perturbed_df: np.array, plain_df: np.array, grid_size=10):
+def truncate_n_dimensional_laplace_noise(perturbed_df: np.array, plain_df: np.array, grid_size=10, include_indicator=False, columns=['x', 'y']):
     mesh = [np.linspace(plain_df[:, i].min(), plain_df[:, i].max(), num=grid_size) for i in range(plain_df.shape[1])]
     meshgrid = np.meshgrid(*mesh, indexing='ij')
      # Create a KDTree from dataset2
@@ -264,11 +264,15 @@ def truncate_n_dimensional_laplace_noise(perturbed_df: np.array, plain_df: np.ar
     outside_domain_mask = np.logical_not(in_domain)
 
     # Create a mask for points outside the domain and closer to meshgrid points
-    outside_domain_and_closer_mask = np.logical_and(outside_domain_mask, meshgrid_distances < distances)
+    outside_domain_and_closer_mask = np.logical_or(outside_domain_mask, meshgrid_distances < distances)
 
     # Remap points outside the domain and closer to meshgrid points to the closest meshgrid points
     remapped_dataset = perturbed_df.copy()
     remapped_dataset[outside_domain_and_closer_mask] = meshgrid_reshaped.reshape(-1, meshgrid_reshaped.shape[-1])[closest_meshgrid_indices][outside_domain_and_closer_mask]
+    remapped_dataset = pd.DataFrame(remapped_dataset, columns=columns)
+    if(include_indicator):
+        remapped_dataset['is_remapped'] = False
+        remapped_dataset.loc[outside_domain_and_closer_mask, 'is_remapped'] = True
 
     return remapped_dataset
 
