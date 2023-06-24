@@ -12,10 +12,10 @@ class ldp_mechanism:
     Truncate dataset based on a meshgrid
     """
     def grid_remap(self, non_private_dataset: pd.DataFrame, private_dataset: pd.DataFrame, grid_size: int = 10, include_indicator: bool = False, columns=['x', 'y']):
-        mesh = [np.linspace(private_dataset[:, i].min(), private_dataset[:, i].max(), num=grid_size) for i in range(private_dataset.shape[1])]
+        mesh = [np.linspace(non_private_dataset[:, i].min(), non_private_dataset[:, i].max(), num=grid_size) for i in range(non_private_dataset.shape[1])]
         meshgrid = np.meshgrid(*mesh, indexing='ij')
         # Create a KDTree from dataset2
-        tree = spatial.KDTree(private_dataset)
+        tree = spatial.KDTree(non_private_dataset)
 
         # Query the KDTree with dataset1 to find the closest points in dataset2
         _, closest_indices = tree.query(private_dataset)
@@ -36,7 +36,7 @@ class ldp_mechanism:
         meshgrid_distances = np.linalg.norm(private_dataset - meshgrid_reshaped.reshape(-1, meshgrid_reshaped.shape[-1])[closest_meshgrid_indices], axis=1)
 
         # Check if each point in dataset1 is within the domain of dataset2
-        in_domain = np.logical_and.reduce([np.logical_and(private_dataset[:, dim] >= non_private_dataset[:, dim].min(), private_dataset[:, dim] <= non_private_dataset[:, dim].max()) for dim in range(private_dataset.shape[1])])
+        in_domain = np.logical_and.reduce([np.logical_and(private_dataset[:, dim] > non_private_dataset[:, dim].min(), private_dataset[:, dim] < non_private_dataset[:, dim].max()) for dim in range(non_private_dataset.shape[1])])
 
         # Create a mask for points outside the domain of dataset2
         outside_domain_mask = np.logical_not(in_domain)
@@ -50,8 +50,7 @@ class ldp_mechanism:
         remapped_dataset = pd.DataFrame(remapped_dataset, columns=columns)
         if(include_indicator):
             remapped_dataset['is_remapped'] = False
-            remapped_dataset.loc[outside_domain_and_closer_mask, 'is_remapped'] = True
-
+            remapped_dataset.loc[outside_domain_mask, 'is_remapped'] = True
         return remapped_dataset
 
     def Q_r(self, x, points, radius, kd_tree=None):
@@ -81,9 +80,11 @@ class ldp_mechanism:
     def optimal_remap(self, non_private_df: pd.DataFrame, perturbed_df: pd.DataFrame):
         tree = spatial.KDTree(non_private_df)
         perturbed_data_copy = perturbed_df.copy()
+        perturbed_data_outside_domain = perturbed_data_copy.copy()
         if perturbed_df.columns.isin(['is_remapped']).any():
-            perturbed_data_copy = perturbed_data_copy[perturbed_data_copy['is_remapped']]
-            perturbed_data_copy = perturbed_data_copy.drop(columns=['is_remapped'])
+            perturbed_data_outside_domain = perturbed_data_copy.loc[perturbed_data_copy['is_remapped']]
+            perturbed_data_outside_domain = perturbed_data_outside_domain.drop(columns=['is_remapped'])
+            perturbed_data_copy.drop(columns=['is_remapped'], inplace=True)
         if not perturbed_data_copy.columns.isin(['r']).any():
             raise ValueError("Perturbed data should have a column named 'r' which is the radius of the grid.")
         if not perturbed_data_copy.shape[1] -1 is non_private_df.shape[1]:
@@ -91,9 +92,10 @@ class ldp_mechanism:
         if not perturbed_data_copy.columns.drop(labels=['r']).isin(non_private_df.columns).all():
             raise ValueError("Perturbed data should have the same columns as plain data.")
 
-        
+        print("Points outside domain....", perturbed_data_outside_domain.shape)
+
         ##truncated_perturbed_data = helpers.truncate_n_dimensional_laplace_noise(perturbed_data_copy, epsilon)
-        for index, private_data_point in perturbed_data_copy.iterrows(): # loop through each point outside the domain
+        for index, private_data_point in perturbed_data_outside_domain.iterrows(): # loop through each point outside the domain
             non_private_data_point = non_private_df.iloc[index] # get the corresponding plain data point
             list_sigma = []
             #print(non_private_data_point, private_data_point)
@@ -184,19 +186,23 @@ class ldp_mechanism:
     def generate_nd_laplace_for_dataset(self, non_private_dataset: pd.DataFrame):
         dimensions = len(non_private_dataset.columns)
         return self.mechanism_factory(dimensions, non_private_dataset)
-        
-    def randomise(self, non_private_dataset: pd.DataFrame, grid_size=10, plot_validation: bool = False):
+    
+    """
+    Epsilon was added to have the same format as the other mechanisms.
+    """
+    def randomise(self, non_private_dataset: pd.DataFrame, epsilon, grid_size=10, plot_validation: bool = False):
         print('Run appropiate mechanism to generate a private dataset...')
         columns = non_private_dataset.columns
         private_dataframe = self.generate_nd_laplace_for_dataset(non_private_dataset)
 
         print('Approximate the private dataset outside the domain to be inside the domain of the non-private dataset using a grid...')
-        perturbed_df_with_grid_remapping = self.grid_remap(private_dataframe.drop(columns=['r']).values, non_private_dataset.values, grid_size=grid_size, columns=columns, include_indicator=True)
+        perturbed_df_with_grid_remapping = self.grid_remap(non_private_dataset.values, private_dataframe.drop(columns=['r']).values, grid_size=grid_size, columns=columns, include_indicator=True)
         perturbed_df_find_grid_remappings_with_r = pd.concat([private_dataframe['r'], perturbed_df_with_grid_remapping], axis=1)
-
+        print(perturbed_df_with_grid_remapping)
         print('All data that was remapped using a grid, is optimally remapped...')
         perturbed_df_optimal_remapping = self.optimal_remap(non_private_dataset, perturbed_df_find_grid_remappings_with_r)
 
+        print('Shapes', perturbed_df_optimal_remapping.shape, perturbed_df_with_grid_remapping.shape, private_dataframe.shape, perturbed_df_find_grid_remappings_with_r.shape)
         if(plot_validation):
             self.validate_randomisation(non_private_dataset, perturbed_df_optimal_remapping, perturbed_df_with_grid_remapping, private_dataframe)
         return perturbed_df_optimal_remapping

@@ -5,14 +5,14 @@ from sklearn.cluster import DBSCAN, OPTICS, AffinityPropagation, KMeans
 import typer
 import seaborn as sns
 import os.path
-from Helpers import helpers, twod_laplace, UtilityPlotter, threed_laplace, nd_laplace
+from Helpers import helpers, twod_laplace, UtilityPlotter, threed_laplace, nd_laplace, ldp_mechanism
 from distutils.dir_util import copy_tree
 
 sns.color_palette("viridis", as_cmap=True)
 
 app = typer.Typer()
 
-research_question_1_algorithms = ["2d-laplace-truncated", "2d-piecewise", "2d-laplace"]
+research_question_1_algorithms = ["2d-laplace-truncated", "2d-piecewise", "2d-laplace", "2d-laplace-optimal-truncated"]
 research_question_2_algorithms = ["3d-laplace", "3d-piecewise", "3d-laplace-truncated"]
 research_question_3_algorithms = ["nd-piecewise", "nd-laplace", "nd-laplace-truncated"]
 supported_algorithms = ["2d-laplace-truncated", "2d-piecewise", "2d-laplace", "3d-laplace", "3d-piecewise", "3d-laplace-truncated", "nd-piecewise", "nd-laplace", "nd-laplace-truncated"]
@@ -24,6 +24,10 @@ dataset_algorithm_features = {
     },
     "2d-piecewise": {
         "seeds-dataset": ["area", "perimeter"],
+        "heart-dataset": ['baseline value', 'histogram_min']
+    },
+    "2d-laplace-optimal-truncated": {
+        #"seeds-dataset": ["area", "perimeter"],
         "heart-dataset": ['baseline value', 'histogram_min']
     },
     "2d-laplace": {
@@ -57,13 +61,16 @@ dataset_algorithm_features = {
     }
 }
 
-def get_mechanism(algorithm):
+def get_mechanism(algorithm, epsilon):
+    mechanism = ldp_mechanism.ldp_mechanism(epsilon)
     if(algorithm == "2d-laplace-truncated"):
         return twod_laplace.generate_truncated_laplace_noise
     if(algorithm == "2d-piecewise"):
         return helpers.generate_piecewise_perturbation
     if(algorithm == "2d-laplace"):
         return twod_laplace.generate_laplace_noise_for_dataset
+    if(algorithm == "2d-laplace-optimal-truncated"):
+        return mechanism.randomise
     if(algorithm == "3d-laplace"):
         return threed_laplace.generate_3D_noise_for_dataset
     if(algorithm == "3d-piecewise"):
@@ -80,7 +87,7 @@ def get_mechanism(algorithm):
         return nd_laplace.generate_truncated_nd_laplace_noise_for_dataset;
 
 def get_noise_adding_mechanism(algorithm: str, plain_df: pd.DataFrame, epsilon: float):
-    mechanism = get_mechanism(algorithm)
+    mechanism = get_mechanism(algorithm, epsilon)
     return mechanism(plain_df, epsilon)
     
 
@@ -103,16 +110,11 @@ def get_export_path(dataset: str, algorithm: str, epsilon: float = None, prefix:
         return f"./{prefix}/{algorithm}/{dataset}/perturbed_{epsilon}.csv"
 
 def get_models(dataset: str, algorithm: str):
-    if(dataset == "seeds-dataset" and algorithm in ["2d-laplace-truncated", "2d-laplace"]):
+    if(dataset == "seeds-dataset" and algorithm in ["2d-laplace-truncated", "2d-laplace", "2d-piecewise"]):
         return {
            'KMeans': KMeans(n_clusters=4, init='random', algorithm='lloyd'),
             'AffinityPropagation': AffinityPropagation(damping=0.5, affinity='euclidean'),
             'OPTICS': OPTICS(min_samples=4, metric='euclidean')
-        }
-    if(dataset == "seeds-dataset" and algorithm in ["2d-piecewise"]):
-        return {
-              'KMeans': KMeans(n_clusters=4, init='random', algorithm='lloyd'),
-              'AffinityPropagation': AffinityPropagation(damping=0.5, affinity='euclidean'),
         }
     if(dataset == "seeds-dataset" and algorithm in ["3d-laplace", "3d-piecewise", "3d-laplace-truncated"]):
         return {
@@ -126,7 +128,7 @@ def get_models(dataset: str, algorithm: str):
             # 'AffinityPropagation': AffinityPropagation(damping=0.5, affinity='euclidean'),
             'OPTICS': OPTICS(min_samples=7, metric='euclidean')
         }
-    if(dataset == "heart-dataset" and algorithm in ['2d-laplace-truncated', '2d-laplace', '2d-piecewise']):
+    if(dataset == "heart-dataset" and algorithm in ['2d-laplace-truncated', '2d-laplace', '2d-piecewise', '2d-laplace-optimal-truncated']):
         return {
             'KMeans': KMeans(n_clusters=4, init='random', algorithm='lloyd'),
             # 'AffinityPropagation': AffinityPropagation(damping=0.5, affinity='euclidean'),
@@ -160,7 +162,7 @@ def get_models_for_comparison(dataset: str, algorithm: str):
            'nd-laplace': KMeans(n_clusters=4, init='random', algorithm='lloyd'),
             'nd-laplace-truncated': KMeans(n_clusters=4, init='random', algorithm='lloyd')
         }
-    if(dataset == "heart-dataset" and algorithm in ['2d-laplace-truncated', '2d-laplace', '2d-piecewise']):
+    if(dataset == "heart-dataset" and algorithm in ['2d-laplace-truncated', '2d-laplace', '2d-piecewise', '2d-laplace-optimal-truncated']):
         return {
             '2d-laplace-truncated': KMeans(n_clusters=4, init='random', algorithm='lloyd'),
             '2d-laplace': KMeans(n_clusters=4, init='random', algorithm='lloyd'),
