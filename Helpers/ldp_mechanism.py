@@ -6,8 +6,8 @@ from Helpers import threed_laplace, twod_laplace
 from scipy import spatial
 
 class ldp_mechanism:
-    def __init__(self, epsilon: float = 0.5):
-        self.epsilon = epsilon
+    #def __init__(self, epsilon: float = 0.5):
+        #self.epsilon = epsilon
     """
     Truncate dataset based on a meshgrid
     """
@@ -191,6 +191,7 @@ class ldp_mechanism:
     Epsilon was added to have the same format as the other mechanisms.
     """
     def randomise(self, non_private_dataset: pd.DataFrame, epsilon, grid_size=10, plot_validation: bool = False):
+        self.epsilon = epsilon
         print('Run appropiate mechanism to generate a private dataset...')
         columns = non_private_dataset.columns
         private_dataframe = self.generate_nd_laplace_for_dataset(non_private_dataset)
@@ -205,7 +206,7 @@ class ldp_mechanism:
         print('Shapes', perturbed_df_optimal_remapping.shape, perturbed_df_with_grid_remapping.shape, private_dataframe.shape, perturbed_df_find_grid_remappings_with_r.shape)
         if(plot_validation):
             self.validate_randomisation(non_private_dataset, perturbed_df_optimal_remapping, perturbed_df_with_grid_remapping, private_dataframe)
-        return perturbed_df_optimal_remapping
+        return perturbed_df_optimal_remapping.drop(columns=['r'])
     
     def validate_randomisation(self, non_private_dataset: pd.DataFrame, remapped_private_dataset: pd.DataFrame, private_dataset_grid_remap: pd.DataFrame, private_dataset: pd.DataFrame):
         dimensions = len(non_private_dataset.columns)
