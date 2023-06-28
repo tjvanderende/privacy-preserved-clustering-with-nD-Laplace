@@ -80,10 +80,10 @@ def remap_to_closted(perturbed_dataset, original_dataset, grid):
     return remapped_dataset
 
 def generate_truncated_perturbed_dataset(X, epsilon):
-    X = np.array(X)
+    X_numpy = np.array(X)
     # meshgrid = np.meshgrid(np.linspace(X[:, 0].min(), X[:, 0].max(), num=6), np.linspace(X[:, 1].min(), X[:, 1].max(), num=6), np.linspace(X[:, 2].min(), X[:, 2].max(), num=6), indexing='ij')
 
-    Z = generate_3D_noise_for_dataset(X, epsilon)
+    Z = generate_3D_noise_for_dataset(X_numpy, epsilon)
     Z = np.array(Z)
 
-    return helpers.truncate_n_dimensional_laplace_noise(Z, X, 12)
+    return helpers.truncate_n_dimensional_laplace_noise(Z, X_numpy, 12, columns=X.columns)
