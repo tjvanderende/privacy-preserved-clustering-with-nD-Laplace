@@ -2,6 +2,8 @@ from matplotlib import pyplot as plt
 import numpy as np
 import pandas as pd
 from sklearn.cluster import DBSCAN, OPTICS, AffinityPropagation, KMeans
+from sklearn.preprocessing import StandardScaler
+from sklearn.metrics import calinski_harabasz_score, silhouette_score
 import typer
 import seaborn as sns
 import os.path
@@ -17,6 +19,16 @@ research_question_2_algorithms = ["3d-laplace", "3d-piecewise", "3d-laplace-trun
 research_question_3_algorithms = ["nd-piecewise", "nd-laplace", "nd-laplace-truncated"]
 supported_algorithms = ["2d-laplace-truncated", "2d-piecewise", "2d-laplace", "3d-laplace", "3d-piecewise", "3d-laplace-truncated", '2d-laplace-optimal-truncated', '3d-laplace-optimal-truncated', "nd-piecewise", "nd-laplace", "nd-laplace-truncated"]
 supported_datasets = ["seeds-dataset", "heart-dataset"]
+dataset_locations = {
+    "seeds-dataset": {
+        "RQ1": "../data/seeds-dataset/rq1.csv",
+        "RQ2": "../data/seeds-dataset/rq2.csv"
+    },
+    "heart-dataset": {
+        "RQ1": "../data/heart-dataset/heart_numerical.csv",
+        "RQ2": "../data/heart-dataset/heart_numerical.csv"
+    }
+}
 dataset_algorithm_features = {
     "2d-laplace-truncated": {
         "seeds-dataset": ["area", "perimeter"],
@@ -177,12 +189,33 @@ def get_models_for_comparison(dataset: str, algorithm: str):
             '2d-laplace-optimal-truncated': KMeans(n_clusters=4, init='random', algorithm='lloyd'),
         }
     
-def plot_comparison(utility_metrics: pd.DataFrame, dataset, algorithm_type, metric = "ami", mechanism_comparison = None, research_question = 'RQ1'): 
-    fig, ax = plt.subplots(figsize=(12, 10))
-    sns.barplot(x='epsilon', y=metric, hue="algorithm", data=utility_metrics, ax=ax, errorbar=None)
+def find_baseline_values(plain_df: pd.DataFrame, model: KMeans, n_times=10):
+    plain_df_scaled = StandardScaler().fit_transform(plain_df)
+    ch_scores = []
+    sc_scores = []
+    for i in range(n_times):
+        plain_fitted_df = model.fit(plain_df_scaled)
+        ch = calinski_harabasz_score(plain_df_scaled, plain_fitted_df.labels_)
+        sc = silhouette_score(plain_df_scaled, plain_fitted_df.labels_)
+        ch_scores.append(ch)
+        sc_scores.append(sc)
+    return {'sc': np.mean(sc_scores), 'ch': np.mean(ch_scores)}
+
+def plot_comparison(utility_metrics: pd.DataFrame, dataset, algorithm_type, baseline_value=None, metric = "Adjusted Mutual Information", mechanism_comparison = None, research_question = 'RQ1'): 
+    sns.set(style="whitegrid", color_codes=True)
+    fig, ax = plt.subplots(figsize=(20, 10))
+    bar = sns.barplot(x='epsilon', y=metric, hue="algorithm", data=utility_metrics, ax=ax)
     algorithm = utility_metrics.iloc[0]['algorithm'] if mechanism_comparison is None else mechanism_comparison
     features = dataset_algorithm_features[algorithm_type][dataset]
-    ax.set_title(f"Comparison of {metric} for {dataset}. Algorithm: {algorithm}. Dimensions: {len(features)}")
+    if baseline_value is not None:
+        ax.axhline(y=baseline_value, linestyle='--', label='non-private K-Means (baseline)')
+    ax.set_title(f"Comparison of {metric} for {dataset} using K-Means. Algorithm: {algorithm}. Dimensions: {len(features)}")
+    hatches = ['-', '+', 'x', '\\', '*', 'o', '--']
+    for bars, hatch in zip(bar.containers, hatches):
+        for bar in bars:
+            bar.set_hatch(hatch)
+
+    ax.legend(title='Mechanism')
     fig.savefig('results/'+research_question+'/' + dataset + '/' +metric+'_'+dataset+'_comparison.png')
     plt.clf()
 
@@ -238,7 +271,8 @@ def run_comparison_experiment(research_question: str, dataset: str):
     print(f'Running {research_question}')
     algorithm = '2d-laplace-truncated' if research_question == 'RQ1' else '3d-laplace' if research_question == 'RQ2' else 'nd-laplace'
     algorithms = research_question_1_algorithms if research_question == 'RQ1' else research_question_2_algorithms if research_question == 'RQ2' else research_question_3_algorithms
-    model_name = helpers.map_models_to_name(get_models(dataset=dataset, algorithm=algorithm)['KMeans'])
+    algorithm_model = get_models(dataset=dataset, algorithm=algorithm)['KMeans']
+    model_name = helpers.map_models_to_name(algorithm_model)
 
     print('Considering:', model_name)       
     print('Algorithms', algorithms)
@@ -266,7 +300,13 @@ def run_comparison_experiment(research_question: str, dataset: str):
         roc_plot_title = 'ROC plot on '+ dataset + '/n with shape: ' + str(ultility_metrics.shape)
         helpers.display_roc_plot(comparison_dp_security, algorithms, title=roc_plot_title, save_as = get_export_path(dataset, research_question, prefix='results')+'roc_plot.png')
         for metric in ['ami', 'ari', 'ch', 'sc']:
-            plot_comparison(comparison_dp, dataset, algorithm, metric=metric, research_question=research_question)
+            baseline_value = None
+            if(metric == 'ch' or metric == 'sc'):
+                dataset_loc = dataset_locations[dataset][research_question]
+                plain_df = helpers.load_dataset(dataset_loc)
+                baseline_value = find_baseline_values(plain_df, algorithm_model)[metric]
+                print('baseline value', baseline_value)
+            plot_comparison(comparison_dp, dataset, algorithm, metric=metric, research_question=research_question, baseline_value=baseline_value)
 
     print("Concatenated utility results:", comparison_dp.head())
     print("Concatenated security results:", comparison_dp_security.head())
