@@ -16,8 +16,8 @@ app = typer.Typer()
 
 research_question_1_algorithms = ["2d-laplace-truncated", "2d-piecewise", "2d-laplace", "2d-laplace-optimal-truncated"]
 research_question_2_algorithms = ["3d-laplace", "3d-piecewise", "3d-laplace-truncated", '3d-laplace-optimal-truncated']
-research_question_3_algorithms = ["nd-piecewise", "nd-laplace", "nd-laplace-truncated"]
-supported_algorithms = ["2d-laplace-truncated", "2d-piecewise", "2d-laplace", "3d-laplace", "3d-piecewise", "3d-laplace-truncated", '2d-laplace-optimal-truncated', '3d-laplace-optimal-truncated', "nd-piecewise", "nd-laplace", "nd-laplace-truncated"]
+research_question_3_algorithms = ["nd-piecewise", "nd-laplace", "nd-laplace-truncated", "nd-laplace-optimal-truncated"]
+supported_algorithms = ["2d-laplace-truncated", "2d-piecewise", "2d-laplace", "3d-laplace", "3d-piecewise", "3d-laplace-truncated", '2d-laplace-optimal-truncated', '3d-laplace-optimal-truncated', "nd-piecewise", "nd-laplace", "nd-laplace-truncated", "nd-laplace-optimal-truncated"]
 supported_datasets = ["seeds-dataset", "heart-dataset"]
 dataset_locations = {
     "seeds-dataset": {
@@ -74,6 +74,10 @@ dataset_algorithm_features = {
     "nd-laplace-truncated": {
         "seeds-dataset": ["area","perimeter","compactness","length of kernel","width of kernel","asymmetry coefficient","length of kernel groove"],
         "heart-dataset": ["baseline value","accelerations","fetal_movement","uterine_contractions","light_decelerations","histogram_width","histogram_min","histogram_max","histogram_number_of_peaks"]
+    },
+    "nd-laplace-optimal-truncated": {
+        "seeds-dataset": ["area","perimeter","compactness","length of kernel","width of kernel","asymmetry coefficient","length of kernel groove"],
+        "heart-dataset": ["baseline value","accelerations","fetal_movement","uterine_contractions","light_decelerations","histogram_width","histogram_min","histogram_max","histogram_number_of_peaks"]
     }
 }
 
@@ -103,6 +107,8 @@ def get_mechanism(algorithm):
         return helpers.generate_piecewise_perturbation;
     if(algorithm == "nd-laplace-truncated"):
         return nd_laplace.generate_truncated_nd_laplace_noise_for_dataset;
+    if(algorithm == "nd-laplace-optimal-truncated"):
+        return mechanism.randomise
 
 def get_noise_adding_mechanism(algorithm: str, plain_df: pd.DataFrame, epsilon: float):
     mechanism = get_mechanism(algorithm)
