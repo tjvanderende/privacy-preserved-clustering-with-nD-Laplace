@@ -13,7 +13,6 @@ from art.utils import to_categorical
 from art.attacks.inference.membership_inference import ShadowModels
 from art.estimators.classification.scikitlearn import ScikitlearnRandomForestClassifier
 from Helpers import twod_laplace
-from diffprivlib.mechanisms import laplace, gaussian
 from scipy.spatial import KDTree
 from itertools import cycle
 from Helpers.pairwise import PMBase, PiecewiseMechanism
@@ -84,9 +83,9 @@ def get_experiment_epsilons():
 def map_models_to_name(model): 
     parameters = model.get_params()
     model_name = type(model).__name__
-    if(model_name == 'KMeans'):
+    if model_name == 'KMeans':
         return 'KMeans(clusters='+str(parameters['n_clusters'])+', init='+parameters['init']+')'
-    elif(model_name == 'DBSCAN'):
+    elif model_name == 'DBSCAN':
         return 'DBSCAN(samples='+str(parameters['min_samples'])+', distance_metric='+parameters['metric']+', eps='+str(parameters['eps'])+')'
     elif(model_name == 'AffinityPropagation'):
         return 'AffinityPropagation(damping='+str(parameters['damping'])+', distance_metric='+parameters['affinity']+')'

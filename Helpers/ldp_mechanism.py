@@ -5,6 +5,10 @@ import numpy as np
 from Helpers import threed_laplace, twod_laplace
 from scipy import spatial
 
+from Helpers.nd_laplace import spherepicking, ct
+from scipy.stats import gamma
+
+
 class ldp_mechanism:
     #def __init__(self, epsilon: float = 0.5):
         #self.epsilon = epsilon
@@ -113,7 +117,7 @@ class ldp_mechanism:
             sum_coefficients = sum(coefficients)
             
             probabilities = np.array([coeff / sum_coefficients for coeff in coefficients]) # calculate the probabilities using the coefficients
-            if(sum_coefficients[sum_coefficients > 0].all()):
+            if sum_coefficients >  0 if isinstance(sum_coefficients, int) else [sum_coefficients > 0].all():
                 averaged_remap = np.average(polularity_x, axis=0, weights=probabilities) # calculate the new value for the point based on the average with weightes probabilities.
                 perturbed_data_copy.loc[index, non_private_df.columns] = averaged_remap if not np.isnan(averaged_remap).any() else private_data_point[non_private_df.columns]
             #print(np.array(probabilities))
@@ -167,8 +171,22 @@ class ldp_mechanism:
             R.append(noise[3])
         return pd.concat((pd.DataFrame(Z, columns=non_private_dataset.columns), pd.DataFrame(R, columns=['r'])), axis=1)
 
-    def generate_nd_noise_for_point(self):
-        NotImplementedError("Not implemented yet")
+    def generate_nd_noise_for_dataset(self, non_private_dataset: pd.DataFrame):
+        Z = []
+        R = []
+        X = np.array(non_private_dataset)
+        for x in X:
+            z, r = self.generate_nd_noise_for_point(x)
+            Z.append(z)
+        return pd.concat((pd.DataFrame(Z, columns=non_private_dataset.columns), pd.DataFrame(R, columns=['r'])), axis=1)
+
+    def generate_nd_noise_for_point(self, x):
+        n = len(x)
+        sphere_noise = spherepicking(n)
+        r = gamma.rvs(n, scale=1 / self.epsilon)
+        u = ct(r, sphere_noise)
+        z = x + u
+        return z, r
 
     def mechanism_factory(self, dimensions: int, non_private_dataset: pd.DataFrame):
         if dimensions is 2:
@@ -178,8 +196,7 @@ class ldp_mechanism:
             print('Run 3D-Laplace mechanism...')
             return self.generate_3d_noise_for_dataset(non_private_dataset)
         else:
-            pass
-            #return self.generate_nd_noise_for_point(non_private_dataset)
+            return self.generate_nd_noise_for_dataset(non_private_dataset)
     """
     Put everything together
     """
@@ -208,14 +225,14 @@ class ldp_mechanism:
             self.validate_randomisation(non_private_dataset, perturbed_df_optimal_remapping, perturbed_df_with_grid_remapping, private_dataframe)
         return perturbed_df_optimal_remapping.drop(columns=['r'])
     
-    def validate_randomisation(self, non_private_dataset: pd.DataFrame, remapped_private_dataset: pd.DataFrame, private_dataset_grid_remap: pd.DataFrame, private_dataset: pd.DataFrame):
+    def validate_randomisation(self, non_private_dataset: pd.DataFrame, remapped_private_dataset: pd.DataFrame, private_dataset_grid_remap: pd.DataFrame, private_dataset: pd.DataFrame, columns=None):
         dimensions = len(non_private_dataset.columns)
         if dimensions is 2:
             self.validate_2d_plot(non_private_dataset, remapped_private_dataset, private_dataset_grid_remap, private_dataset)
         elif dimensions is 3:
             self.validate_3d_plot(non_private_dataset, remapped_private_dataset, private_dataset_grid_remap, private_dataset)
         else:
-            raise Exception("Not be-able to visualize data with more than 3 dimensions.")
+            self.validate_3d_plot(non_private_dataset, remapped_private_dataset, private_dataset_grid_remap, private_dataset, columns=columns)
 
     def validate_2d_plot(self, non_private_dataset: pd.DataFrame, remapped_private_dataset: pd.DataFrame, private_dataset_grid_remap: pd.DataFrame, original_private_dataset: pd.DataFrame):
         import matplotlib.pyplot as plt
@@ -235,20 +252,20 @@ class ldp_mechanism:
         ax.legend(['Optimal remapped'])
         plt.show()
 
-    def validate_3d_plot(self, non_private_dataset: pd.DataFrame, remapped_private_dataset: pd.DataFrame, private_dataset_grid_remap: pd.DataFrame, original_private_dataset: pd.DataFrame):
+    def validate_3d_plot(self, non_private_dataset: pd.DataFrame, remapped_private_dataset: pd.DataFrame, private_dataset_grid_remap: pd.DataFrame, original_private_dataset: pd.DataFrame, columns = None):
         import matplotlib.pyplot as plt
+        columns_to_plot = non_private_dataset.columns if columns is None else columns
         fig = plt.figure(figsize=(15, 5))
-        columns = non_private_dataset.columns
         ax = fig.add_subplot(1, 4, 1, projection='3d')
-        ax.scatter(non_private_dataset[columns[0]], non_private_dataset[columns[1]], non_private_dataset[columns[2]], c='blue', marker='o', alpha=0.1)
+        ax.scatter(non_private_dataset[columns_to_plot[0]], non_private_dataset[columns_to_plot[1]], non_private_dataset[columns_to_plot[2]], c='blue', marker='o', alpha=0.1)
         ax.legend(['Non-private data'])
         ax = fig.add_subplot(1, 4, 2, projection='3d')
-        ax.scatter(original_private_dataset[columns[0]], original_private_dataset[columns[1]], original_private_dataset[columns[2]], c='green', marker='x', alpha=0.1)
+        ax.scatter(original_private_dataset[columns_to_plot[0]], original_private_dataset[columns_to_plot[1]], original_private_dataset[columns_to_plot[2]], c='green', marker='x', alpha=0.1)
         ax.legend(['3D-Laplace private data'])
         ax = fig.add_subplot(1, 4, 3, projection='3d')
-        ax.scatter(private_dataset_grid_remap[columns[0]], private_dataset_grid_remap[columns[1]], private_dataset_grid_remap[columns[2]], c='red', marker='o', alpha=0.1)
+        ax.scatter(private_dataset_grid_remap[columns_to_plot[0]], private_dataset_grid_remap[columns_to_plot[1]], private_dataset_grid_remap[columns_to_plot[2]], c='red', marker='o', alpha=0.1)
         ax.legend(['Grid-mapped'])
         ax = fig.add_subplot(1, 4, 4, projection='3d')
-        ax.scatter(remapped_private_dataset[columns[0]], remapped_private_dataset[columns[1]], remapped_private_dataset[columns[2]], c='green', marker='o', alpha=0.1)
+        ax.scatter(remapped_private_dataset[columns_to_plot[0]], remapped_private_dataset[columns_to_plot[1]], remapped_private_dataset[columns_to_plot[2]], c='green', marker='o', alpha=0.1)
         ax.legend(['Optimal remapped'])
         plt.show()
