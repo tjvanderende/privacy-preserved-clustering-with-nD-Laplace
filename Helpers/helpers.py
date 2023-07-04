@@ -18,6 +18,7 @@ from itertools import cycle
 from Helpers.pairwise import PMBase, PiecewiseMechanism
 from sklearn.neighbors import NearestNeighbors
 from sklearn.preprocessing import MinMaxScaler
+from adjustText import adjust_text
 
 def elbow_plot(sse):
     from matplotlib import pyplot as plt
@@ -168,7 +169,10 @@ def run_mi_experiments(X, y_true, epsilons, n_times = 10, algorithm = None, targ
 
             attack_train_size = len(x_target) // 2
             #attack_test_size = attack_train_size
-            x_target_train = algorithm(x_target[:attack_train_size], epsilon)
+            if algorithm is None:
+                x_target_train = x_target[:attack_train_size]
+            else:
+                x_target_train = algorithm(x_target[:attack_train_size], epsilon)
             x_target_train = np.array(x_target_train)
             #x_target_train = X_pd.iloc[x_target[:target_train_size].index, 0:2]
             y_target_train = y_target[:attack_train_size]
@@ -287,23 +291,39 @@ def prepare_for_roc(mi_scores):
     #extra_point2 = pd.DataFrame({'fpr': [1.0], 'tpr': [1.0]})
     return pd.concat([mi_scores_for_display, extra_point], ignore_index=True)
 
-def display_roc_plot(mi_scores, types, title = 'ROC Curve', save_as = None):
+def display_roc_plot(mi_scores_df, types, title = 'ROC Curve', save_as = None, tpr_baseline = 0.7, fpr_baseline=0.5, annotate = False):
     #fig, ax = plt.subplots(figsize=(8, 6))
     #display = RocCurveDisplay(fpr=mi_scores_for_display['fpr'].sort_values(), tpr=mi_scores_for_display['tpr'].sort_values()).plot(ax)
     line_styles = cycle(['-', '--', '-.', ':'])
     fig, ax = plt.subplots(figsize=(12, 10))
-
+    mi_scores = mi_scores_df.copy()
     # sns.lineplot(x=mi_scores['fpr'].sort_values(), y=mi_scores['tpr'].sort_values())
     for score_type in types:
         linestyle = next(line_styles)
         mi_scores_for_display = prepare_for_roc(mi_scores.loc[mi_scores['algorithm'] == score_type])
+        tpr = mi_scores_for_display['tpr'].sort_values()
+        fpr = mi_scores_for_display['fpr'].sort_values()
         plt.plot(mi_scores_for_display['fpr'].sort_values(), mi_scores_for_display['tpr'].sort_values(), lw=2, label=score_type, linestyle=linestyle)
+    
+        #plt.fill_between(fpr, tpr, tpr_baseline, where=(tpr > tpr_baseline), color='lightgray', alpha=0.5)
     #plt.plot(mi_scores['fpr'].sort_values(), mi_scores['tpr'].sort_values(), lw=2)
     # disabling the offset on y axis
+    # Annotate the lines with epsilon values\
+    if annotate:
+        texts = []
+        for epsilon_val in mi_scores_for_display['epsilon'].unique():
+            epsilon_df = mi_scores_for_display[mi_scores_for_display['epsilon'] == epsilon_val]
+            mean_fpr = np.mean(epsilon_df['fpr'])
+            mean_tpr = np.mean(epsilon_df['tpr'])
+            texts.append(plt.text(mean_fpr + 0.02, mean_tpr - 0.02, f'Epsilon: {epsilon_val}', fontsize=8))
+
+        adjust_text(texts)
 
     ax.set_title(title)
     ax.set_ylabel("True Positive Rate")
     ax.set_xlabel("Flase Positive Rate")
+    ax.axhline(y=tpr_baseline, linestyle='-', label=f'non-private TPR (baseline: {tpr_baseline:.2f})', color='red')
+    ax.axhline(y=fpr_baseline, linestyle='-', label=f'non-private FPR (baseline: {fpr_baseline:.2f})', color='green')
     ax.plot([0, 1], [0, 1],'r--', label='Random Guess')
     ax.set_xlim([-0.05, 1.02])  # Set the x-axis limits from 0 to 1
     ax.set_ylim([-0.05, 1.02])  # Set the y-axis limits from 0 to 1

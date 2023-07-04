@@ -1,0 +1,4 @@
+algorithm,epsilon,True Positive Rate,False Positive Rate
+laplace,2.0,0.729,0.479
+laplace,7.0,0.73,0.488
+piecewise,9.0,0.731,0.188
