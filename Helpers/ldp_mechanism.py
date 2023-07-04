@@ -117,7 +117,7 @@ class ldp_mechanism:
             sum_coefficients = sum(coefficients)
             
             probabilities = np.array([coeff / sum_coefficients for coeff in coefficients]) # calculate the probabilities using the coefficients
-            if sum_coefficients >  0 if isinstance(sum_coefficients, int) else [sum_coefficients > 0].all():
+            if sum_coefficients >  0 if isinstance(sum_coefficients, int) else sum_coefficients[sum_coefficients > 0].all():
                 averaged_remap = np.average(polularity_x, axis=0, weights=probabilities) # calculate the new value for the point based on the average with weightes probabilities.
                 perturbed_data_copy.loc[index, non_private_df.columns] = averaged_remap if not np.isnan(averaged_remap).any() else private_data_point[non_private_df.columns]
             #print(np.array(probabilities))
