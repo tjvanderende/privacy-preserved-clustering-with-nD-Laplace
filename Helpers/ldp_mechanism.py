@@ -207,7 +207,7 @@ class ldp_mechanism:
     """
     Epsilon was added to have the same format as the other mechanisms.
     """
-    def randomise(self, non_private_dataset: pd.DataFrame, epsilon, grid_size=10, plot_validation: bool = False):
+    def randomise(self, non_private_dataset: pd.DataFrame, epsilon, grid_size=6, plot_validation: bool = False):
         self.epsilon = epsilon
         print('Run appropiate mechanism to generate a private dataset...')
         columns = non_private_dataset.columns

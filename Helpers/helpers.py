@@ -106,8 +106,16 @@ def measure_external_validity_report(epsilon, cluster_model, import_path, pertur
     perturbed_fitted_df = clone(cluster_model).fit(perturbed_df_scaled)
     ami = adjusted_mutual_info_score(plain_fitted_df.labels_, perturbed_fitted_df.labels_)
     ari = adjusted_rand_score(plain_fitted_df.labels_, perturbed_fitted_df.labels_)
-    ch = calinski_harabasz_score(perturbed_df_scaled, perturbed_fitted_df.labels_)
-    sc = silhouette_score(perturbed_df_scaled, perturbed_fitted_df.labels_)
+    ch = 0.0
+    sc = 0
+    try:
+        ch = calinski_harabasz_score(perturbed_df_scaled, perturbed_fitted_df.labels_)
+    except:
+        print('Calinski Harabasz score failed, defaulting to 0.0 as score')
+    try:
+        sc = silhouette_score(perturbed_df_scaled, perturbed_fitted_df.labels_)
+    except:
+        print('Silhouette score failed, defaulting to 0 as score')
     return ami, ari, ch, sc
     
 def generate_external_validity_export(epsilons, models, n_times = 10, import_path='../exports', perturbed_path='../perturbed', model_name= None, columns=['X', 'Y']):
@@ -216,12 +224,12 @@ def run_mi_experiments(X, y_true, epsilons, n_times = 10, algorithm = None, targ
     return pd.DataFrame(shokri_mi_avgs)
 
 def generate_piecewise_perturbation(plain_df, epsilon):
-    plain_df = reshape_data_to_uniform(plain_df) # resphape to [-1, 1] (rquired by the algorithm)
+    scaler, plain_df = reshape_data_to_uniform(plain_df) # resphape to [-1, 1] (rquired by the algorithm)
     pm_encoder = PiecewiseMechanism(epsilon=epsilon, domain=[-1.001, 1.001])
     perturbed_df = plain_df.copy()
     for col in plain_df.columns:
         perturbed_df[col] = plain_df[col].apply(pm_encoder.randomise)
-    return perturbed_df
+    return scaler.inverse_transform(perturbed_df)
 
 def kDistancePlot(X):
     neigh = NearestNeighbors(n_neighbors=2)
@@ -233,9 +241,11 @@ def kDistancePlot(X):
     plt.xlabel('Data points')
     plt.ylabel('Epsilon')
     plt.plot(distances)
+    
 
 def reshape_data_to_uniform(dataframe: pd.DataFrame):
-    return pd.DataFrame(MinMaxScaler(feature_range=(-1, 1)).fit_transform(dataframe.values), columns=dataframe.columns)
+    scaler = MinMaxScaler(feature_range=(-1, 1)).fit(dataframe.values)
+    return scaler, pd.DataFrame(scaler.transform(dataframe.values), columns=dataframe.columns)
 
 
 def truncate_n_dimensional_laplace_noise(perturbed_df: np.array, plain_df: np.array, grid_size=10, include_indicator=False, columns=['x', 'y']):
@@ -330,3 +340,44 @@ def display_roc_plot(mi_scores_df, types, title = 'ROC Curve', save_as = None, t
     ax.legend(loc="lower right")
     if(save_as is not None):
         fig.savefig(save_as)
+
+
+
+
+def compute_euclidean_distance_between_two_rows(row1, row2):
+    return np.linalg.norm(row1 - row2)
+
+def compute_distances_between_two_datasets(df1, df2):
+    distances = []
+    for i in range(df1.shape[0]):
+        distances.append(compute_euclidean_distance_between_two_rows(df1.iloc[i, :], df2.iloc[i, :]))
+    return distances
+
+def compute_euclidean_distances_between_two_datasets_per_epsilon(plain_df, epsilons, algorithm, dataset):
+    distances = {'epsilon': [], 'distance': []}
+    for epsilon in epsilons:
+        perturbed_df_3d = load_dataset(f'../ExperimentRunners/data/{algorithm}/{dataset}/perturbed_{epsilon}.csv')
+        distances['epsilon'].append(epsilon)
+        distances['distance'].append(np.mean(compute_distances_between_two_datasets(plain_df, perturbed_df_3d)))
+    df = pd.DataFrame(distances)
+    df['algorithm'] = algorithm
+    df['dataset'] = dataset
+    return df;
+
+def create_lineplot_of_different_algorithms(df:pd.DataFrame, title, xlabel, ylabel, safe_path = None):
+    sns.set_theme(style="whitegrid")
+    fig, ax = plt.subplots(figsize=(15, 5))
+    ax = sns.lineplot(x="epsilon", y="distance", hue="algorithm", data=df, ax=ax, style='algorithm', markers=True)
+    ax.set_title(title)
+    ax.set_xlabel(xlabel)
+    ax.set_ylabel(ylabel)
+    ax.set_xticks(df['epsilon'].unique())
+    ax.set_xticklabels(df['epsilon'].unique(), rotation=45)
+    ax.set_yscale('log')
+    ax.legend(title='Mechanism')
+
+    if(safe_path is not None):
+        fig.savefig(safe_path)
+        plt.clf()
+    else:
+        plt.show()

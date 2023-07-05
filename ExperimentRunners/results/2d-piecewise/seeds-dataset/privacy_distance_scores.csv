@@ -1,0 +1,13 @@
+epsilon,distance,algorithm,dataset
+0.1,34.87544920596242,2d-piecewise,seeds-dataset
+0.5,21.237321339115862,2d-piecewise,seeds-dataset
+0.7,21.21148668510029,2d-piecewise,seeds-dataset
+1.0,21.22323827321869,2d-piecewise,seeds-dataset
+1.5,21.0946571432826,2d-piecewise,seeds-dataset
+2.0,21.040444032454477,2d-piecewise,seeds-dataset
+2.5,21.113298627545547,2d-piecewise,seeds-dataset
+3.0,21.001721004929518,2d-piecewise,seeds-dataset
+3.5,21.05020080484214,2d-piecewise,seeds-dataset
+5.0,21.055595207818225,2d-piecewise,seeds-dataset
+7.0,21.046064723765536,2d-piecewise,seeds-dataset
+9.0,21.044315846120508,2d-piecewise,seeds-dataset

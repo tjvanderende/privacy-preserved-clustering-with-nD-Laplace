@@ -1,0 +1,13 @@
+epsilon,distance,algorithm,dataset
+0.1,257.03268417689765,nd-piecewise,heart-dataset
+0.5,249.31574422009407,nd-piecewise,heart-dataset
+0.7,249.2416263420111,nd-piecewise,heart-dataset
+1.0,249.0576282801944,nd-piecewise,heart-dataset
+1.5,248.98835439958785,nd-piecewise,heart-dataset
+2.0,248.938040554303,nd-piecewise,heart-dataset
+2.5,248.9402980188338,nd-piecewise,heart-dataset
+3.0,248.94329544538235,nd-piecewise,heart-dataset
+3.5,248.9516641444074,nd-piecewise,heart-dataset
+5.0,248.93706845939093,nd-piecewise,heart-dataset
+7.0,248.94128259253822,nd-piecewise,heart-dataset
+9.0,248.9437102367039,nd-piecewise,heart-dataset

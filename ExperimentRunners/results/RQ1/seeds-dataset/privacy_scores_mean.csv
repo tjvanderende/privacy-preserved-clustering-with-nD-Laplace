@@ -6,6 +6,7 @@ laplace,1.0,0.667,0.437
 laplace,1.5,0.671,0.462
 laplace,2.0,0.669,0.515
 laplace,2.5,0.666,0.501
+laplace,3.0,0.638,0.492
 laplace,3.5,0.669,0.552
 laplace,5.0,0.678,0.562
 laplace,7.0,0.665,0.524
@@ -18,8 +19,12 @@ laplace-optimal-truncated,2.0,0.665,0.508
 laplace-optimal-truncated,2.5,0.662,0.536
 laplace-optimal-truncated,3.0,0.676,0.541
 laplace-optimal-truncated,3.5,0.667,0.52
+laplace-optimal-truncated,5.0,0.634,0.498
 laplace-optimal-truncated,7.0,0.659,0.536
 laplace-optimal-truncated,9.0,0.664,0.522
+laplace-truncated,0.5,0.618,0.422
+laplace-truncated,0.7,0.624,0.43
+laplace-truncated,1.0,0.64,0.457
 laplace-truncated,1.5,0.671,0.517
 laplace-truncated,2.0,0.657,0.518
 laplace-truncated,2.5,0.663,0.517

@@ -1,0 +1,13 @@
+epsilon,distance,algorithm,dataset
+0.1,5.335320900261981,3d-laplace-truncated,seeds-dataset
+0.5,2.930811824401894,3d-laplace-truncated,seeds-dataset
+0.7,2.5020492171582775,3d-laplace-truncated,seeds-dataset
+1.0,1.909056419287261,3d-laplace-truncated,seeds-dataset
+1.5,1.468297601911172,3d-laplace-truncated,seeds-dataset
+2.0,1.178406801147148,3d-laplace-truncated,seeds-dataset
+2.5,0.9533316067690425,3d-laplace-truncated,seeds-dataset
+3.0,0.9283784513762073,3d-laplace-truncated,seeds-dataset
+3.5,0.7751838582126731,3d-laplace-truncated,seeds-dataset
+5.0,0.5770162503863462,3d-laplace-truncated,seeds-dataset
+7.0,0.47603149886144835,3d-laplace-truncated,seeds-dataset
+9.0,0.3416214183813277,3d-laplace-truncated,seeds-dataset

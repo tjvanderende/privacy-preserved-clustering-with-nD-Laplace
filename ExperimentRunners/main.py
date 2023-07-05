@@ -393,6 +393,7 @@ def run_comparison_experiment(research_question: str, dataset: str):
     for dataset in supported_datasets:
         comparison_dp = pd.DataFrame()
         comparison_dp_security = pd.DataFrame()
+        comparison_dp_security_distance = pd.DataFrame()
         for algorithm in algorithms:
             create_directory_if_nonexistent(get_export_path(dataset, research_question, prefix='results'))
 
@@ -407,11 +408,14 @@ def run_comparison_experiment(research_question: str, dataset: str):
                 get_export_path(dataset, algorithm, prefix='results') + '/privacy_scores.csv')
             privacy_metrics['algorithm'] = algorithm
 
+            privacy_distance_dataset = helpers.load_dataset(get_export_path(dataset, algorithm, prefix='results') + 'privacy_distance_scores.csv')
+            
+
             comparison_dp = pd.concat([comparison_dp, ultility_metrics]).reset_index(drop=True)
             comparison_dp_security = pd.concat([comparison_dp_security, privacy_metrics]).reset_index(drop=True)
+            comparison_dp_security_distance = pd.concat([comparison_dp_security_distance, privacy_distance_dataset]).reset_index(drop=True)
 
         ## DATASET LEVEL ##
-
         """
         Load baseline for membership inference attack
         """
@@ -438,6 +442,14 @@ def run_comparison_experiment(research_question: str, dataset: str):
             save_as=get_export_path(dataset, research_question, prefix='results') + 'roc_plot.png')
         
         export_for_report(comparison_dp_security, dataset, research_question, baseline_value=tpr_baseline)
+        
+        helpers.create_lineplot_of_different_algorithms(
+            comparison_dp_security_distance, 
+            f"Difference in euclidean distance between non-private and private variant of the {dataset} for each mechanism.", 
+            "Epsilon", 
+            "Euclidean distance", 
+            safe_path=get_export_path(dataset, research_question, prefix='results') + 'privacy_distance_plot.png')
+        
 
         for metric in ['ami', 'ari', 'ch', 'sc']:
             baseline_value = None
@@ -470,6 +482,13 @@ def run_privacy_experiments(plain_dataset_path: str, algorithm: str, dataset: st
     print('Target amount', targets);
 
     privacy_dataset = get_export_path(dataset, algorithm, prefix='results') + 'privacy_scores.csv';
+    privacy_distance_dataset = get_export_path(dataset, algorithm, prefix='results') + 'privacy_distance_scores.csv';
+    if os.path.isfile(privacy_distance_dataset):
+        print('Loading existing distance report')
+    else:
+        print(X_features.head(), algorithm, dataset)
+        privacy_distance_df = helpers.compute_euclidean_distances_between_two_datasets_per_epsilon(X_features, epsilons, algorithm, dataset)
+        privacy_distance_df.to_csv(get_export_path(dataset, algorithm, prefix='results') + 'privacy_distance_scores.csv', index=False)
 
     if os.path.isfile(privacy_dataset):
         print('Loading existing report')

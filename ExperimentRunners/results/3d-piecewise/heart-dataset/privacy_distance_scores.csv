@@ -1,0 +1,13 @@
+epsilon,distance,algorithm,dataset
+0.1,1312.0946544532912,3d-piecewise,heart-dataset
+0.5,249.3816000847709,3d-piecewise,heart-dataset
+0.7,165.72613200277547,3d-piecewise,heart-dataset
+1.0,112.94140895955958,3d-piecewise,heart-dataset
+1.5,68.12343014398859,3d-piecewise,heart-dataset
+2.0,47.01517867279736,3d-piecewise,heart-dataset
+2.5,32.742440370065985,3d-piecewise,heart-dataset
+3.0,24.699503371509817,3d-piecewise,heart-dataset
+3.5,18.666483629541332,3d-piecewise,heart-dataset
+5.0,8.31925720856254,3d-piecewise,heart-dataset
+7.0,3.139836770778356,3d-piecewise,heart-dataset
+9.0,1.1204590697707886,3d-piecewise,heart-dataset
