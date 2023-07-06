@@ -1,4 +1,9 @@
 setup.py
+Helpers.egg-info/PKG-INFO
+Helpers.egg-info/SOURCES.txt
+Helpers.egg-info/dependency_links.txt
+Helpers.egg-info/pbr.json
+Helpers.egg-info/top_level.txt
 helpers.egg-info/PKG-INFO
 helpers.egg-info/SOURCES.txt
 helpers.egg-info/dependency_links.txt

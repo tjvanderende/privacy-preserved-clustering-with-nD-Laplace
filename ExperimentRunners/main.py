@@ -7,7 +7,7 @@ from sklearn.metrics import calinski_harabasz_score, silhouette_score
 import typer
 import seaborn as sns
 import os.path
-from Helpers import helpers, twod_laplace, UtilityPlotter, threed_laplace, nd_laplace, ldp_mechanism
+from Helpers import helpers, twod_laplace, UtilityPlotter, threed_laplace, nd_laplace, ldp_mechanism, rq3_helpers
 from distutils.dir_util import copy_tree
 
 sns.color_palette("viridis", as_cmap=True)
@@ -121,11 +121,11 @@ def get_mechanism(algorithm):
     if (algorithm == "nd-laplace-truncated"):
         return nd_laplace.generate_nd_laplace_noise_for_dataset
     if (algorithm == "nd-laplace"):
-        return nd_laplace.generate_nd_laplace_noise_for_dataset;
+        return nd_laplace.generate_nd_laplace_noise_for_dataset
     if (algorithm == "nd-piecewise"):
         return helpers.generate_piecewise_perturbation;
     if (algorithm == "nd-laplace-truncated"):
-        return nd_laplace.generate_truncated_nd_laplace_noise_for_dataset;
+        return nd_laplace.generate_truncated_nd_laplace_noise_for_dataset
     if (algorithm == "nd-laplace-optimal-truncated"):
         return mechanism.randomise
 
@@ -258,6 +258,22 @@ def find_baseline_mi_values(plain_df: pd.DataFrame, y_target, n_times=10):
     # scores_mean = scores.mean()
     return scores['tpr_value'].mean(), scores['fpr_value'].mean()
 
+def plot_bar_colorblindness(bar):
+    hatches = ['-', '+', 'x', '\\', '*', 'o', '--']
+    for bars, hatch in zip(bar.containers, hatches):
+        for bar in bars:
+            bar.set_hatch(hatch)
+
+
+def plot_dimension_comparison(metrics:pd.DataFrame, dataset:str, filename:str, metric='ami',):
+    sns.set(style="whitegrid", color_codes=True)
+    fig, ax = plt.subplots(figsize=(20, 10))
+    bar = sns.barplot(x='dimensions', y=metric, hue="type", data=metrics)
+    ax.set_title(f"Dimension comparison of {metric} for {dataset} using K-Means.")
+    plot_bar_colorblindness(bar)
+    ax.legend(title='Mechanism')
+    fig.savefig(f'results/RQ3/{dataset}/{filename}.png')
+    plt.clf()
 
 def plot_comparison(utility_metrics: pd.DataFrame,
                     dataset,
@@ -280,10 +296,7 @@ def plot_comparison(utility_metrics: pd.DataFrame,
         ax.axhline(y=fpr_baseline, linestyle='solid', label=f'non-private FPR (baseline: {fpr_baseline:.2f})', color='green')
     ax.set_title(
         f"Comparison of {metric} for {dataset} using K-Means. Algorithm: {algorithm}. Dimensions: {len(features)}")
-    hatches = ['-', '+', 'x', '\\', '*', 'o', '--']
-    for bars, hatch in zip(bar.containers, hatches):
-        for bar in bars:
-            bar.set_hatch(hatch)
+    plot_bar_colorblindness(bar)
 
     ax.legend(title='Mechanism')
     fig.savefig('results/' + research_question + '/' + dataset + '/' + metric + '_' + dataset + '_comparison.png')
@@ -372,6 +385,7 @@ def run_utility_experiments(plain_dataset_path: str, algorithm: str, dataset: st
             perturbed_path=get_export_path(dataset, algorithm), columns=features)
         report.to_csv(get_export_path(dataset, algorithm, prefix='results') + 'utility_scores.csv', index=False)
 
+
     # --- PLOT RESULTS ---
     utility = UtilityPlotter.UtilityPlotter(plain_dataset_path, get_models(dataset, algorithm), columns=features)
     utility.plot_external_validation(report, get_export_path(dataset, algorithm, prefix='results'), save=True)
@@ -409,13 +423,15 @@ def run_comparison_experiment(research_question: str, dataset: str):
             privacy_metrics['algorithm'] = algorithm
 
             privacy_distance_dataset = helpers.load_dataset(get_export_path(dataset, algorithm, prefix='results') + 'privacy_distance_scores.csv')
+
+            #utility_dimensionality_dataset = helpers.load_dataset(get_export_path(dataset, algorithm, prefix='results') + 'utility_dimensionality_scores.csv')
             
 
             comparison_dp = pd.concat([comparison_dp, ultility_metrics]).reset_index(drop=True)
             comparison_dp_security = pd.concat([comparison_dp_security, privacy_metrics]).reset_index(drop=True)
             comparison_dp_security_distance = pd.concat([comparison_dp_security_distance, privacy_distance_dataset]).reset_index(drop=True)
 
-        ## DATASET LEVEL ##
+        
         """
         Load baseline for membership inference attack
         """
@@ -500,6 +516,42 @@ def run_privacy_experiments(plain_dataset_path: str, algorithm: str, dataset: st
                                                 columns=dataset_algorithm_features[algorithm][dataset],
                                                 targets=targets);
         privacy_df.to_csv(get_export_path(dataset, algorithm, prefix='results') + 'privacy_scores.csv', index=False)
+
+@app.command()
+def run_experiments_rq3():
+    for dataset in supported_datasets:
+        ## DATASET LEVEL ##
+        plain_dataset_location = dataset_locations[dataset]['RQ2-nd']
+
+        k_means_model = get_models(dataset, 'nd-laplace')['KMeans']
+        plain_dataset = helpers.load_dataset(plain_dataset_location)
+        plain_dataset.drop(columns=['class'], inplace=True)
+
+        """
+        Run RQ3 things
+        """
+        for epsilon in [0.5, 3, 9]:
+                
+            utility_dimensional_loc = f'./results/RQ3/{dataset}/utility_dimensionality_scores_{epsilon}.csv'
+            utility_dimensions = None
+            if(os.path.isfile(utility_dimensional_loc)):
+                print(f'Use existing utility dimensional dataset for {epsilon}')
+                utility_dimensions = helpers.load_dataset(utility_dimensional_loc)
+            else:
+                utility_dimensions = rq3_helpers.run_for_dimensions_and_algorithms(
+                    plain_dataset, 
+                    epsilon, 
+                    [k_means_model], 
+                    research_question_3_algorithms, 
+                    dataset=dataset, 
+                    import_path=plain_dataset_location,
+                    perturbed_path=f'./data/',
+                )
+                create_directory_if_nonexistent(f'./results/RQ3/{dataset}/')
+                utility_dimensions.to_csv(utility_dimensional_loc, index=False)
+                
+            plot_dimension_comparison(utility_dimensions, dataset, f'utility_dimensions_{epsilon}', metric='ami')
+
 
 
 if __name__ == "__main__":
