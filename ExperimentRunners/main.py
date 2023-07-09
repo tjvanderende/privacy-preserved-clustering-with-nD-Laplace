@@ -228,6 +228,7 @@ def find_baseline_mi_values(plain_df: pd.DataFrame, y_target, n_times=10):
     # scores_mean = scores.mean()
     return scores['tpr_value'].mean(), scores['fpr_value'].mean()
 
+
 def plot_bar_colorblindness(bar):
     hatches = ['-', '+', 'x', '\\', '*', 'o', '--']
     for bars, hatch in zip(bar.containers, hatches):
@@ -235,7 +236,7 @@ def plot_bar_colorblindness(bar):
             bar.set_hatch(hatch)
 
 
-def plot_dimension_comparison(metrics:pd.DataFrame, dataset:str, filename:str, metric='ami',):
+def plot_dimension_comparison(metrics: pd.DataFrame, dataset: str, filename: str, metric='ami', ):
     sns.set(style="whitegrid", color_codes=True)
     fig, ax = plt.subplots(figsize=(20, 10))
     bar = sns.barplot(x='dimensions', y=metric, hue="type", data=metrics)
@@ -244,6 +245,7 @@ def plot_dimension_comparison(metrics:pd.DataFrame, dataset:str, filename:str, m
     ax.legend(title='Mechanism')
     fig.savefig(f'results/RQ3/{dataset}/{filename}.png')
     plt.clf()
+
 
 def plot_comparison(utility_metrics: pd.DataFrame,
                     dataset,
@@ -262,8 +264,10 @@ def plot_comparison(utility_metrics: pd.DataFrame,
     if baseline_value is not None:
         ax.axhline(y=baseline_value, linestyle='--', label='non-private K-Means (baseline)')
     if tpr_baseline is not None and fpr_baseline is not None:
-        ax.axhline(y=tpr_baseline, linestyle='solid', label=f'non-private TPR (baseline: {tpr_baseline:.2f})', color='red')
-        ax.axhline(y=fpr_baseline, linestyle='solid', label=f'non-private FPR (baseline: {fpr_baseline:.2f})', color='green')
+        ax.axhline(y=tpr_baseline, linestyle='solid', label=f'non-private TPR (baseline: {tpr_baseline:.2f})',
+                   color='red')
+        ax.axhline(y=fpr_baseline, linestyle='solid', label=f'non-private FPR (baseline: {fpr_baseline:.2f})',
+                   color='green')
     ax.set_title(
         f"Comparison of {metric} for {dataset} using K-Means. Algorithm: {algorithm}. Dimensions: {len(features)}")
     plot_bar_colorblindness(bar)
@@ -271,6 +275,7 @@ def plot_comparison(utility_metrics: pd.DataFrame,
     ax.legend(title='Mechanism')
     fig.savefig('results/' + research_question + '/' + dataset + '/' + metric + '_' + dataset + '_comparison.png')
     plt.clf()
+
 
 def plot_tpr_fpr_comparison(private_dataset: pd.DataFrame, dataset, research_question='RQ1', metric='Shokri MI'):
     sns.set(style="whitegrid", color_codes=True)
@@ -283,7 +288,7 @@ def plot_tpr_fpr_comparison(private_dataset: pd.DataFrame, dataset, research_que
     df_stacked = private_dataset
     df_stacked['complement'] = 1
 
-        # Create the grouped bar plot using seaborn
+    # Create the grouped bar plot using seaborn
     sns.barplot(x='epsilon', y='tpr', hue='algorithm',
                 data=df_stacked, ci=None, palette='colorblind')
 
@@ -291,9 +296,9 @@ def plot_tpr_fpr_comparison(private_dataset: pd.DataFrame, dataset, research_que
     sns.barplot(x='epsilon', y='complement', hue='algorithm',
                 data=df_stacked, ci=None, palette='colorblind', alpha=0.3)
 
-    #private_dataset.groupby(['epsilon', 'algorithm']).mean().plot(kind='bar', stacked=True, y=['tpr', 'fpr'], ax=ax)
-    #bar2 = sns.barplot(x='epsilon', y='fpr', hue="algorithm", data=prepared_data, ax=ax, alpha=0.5)
-    #bar = sns.barplot(x='epsilon', y='tpr', hue="algorithm", data=prepared_data, ax=ax)
+    # private_dataset.groupby(['epsilon', 'algorithm']).mean().plot(kind='bar', stacked=True, y=['tpr', 'fpr'], ax=ax)
+    # bar2 = sns.barplot(x='epsilon', y='fpr', hue="algorithm", data=prepared_data, ax=ax, alpha=0.5)
+    # bar = sns.barplot(x='epsilon', y='tpr', hue="algorithm", data=prepared_data, ax=ax)
 
     ax.legend(title='Mechanism')
     fig.savefig('results/' + research_question + '/' + dataset + '/' + metric + '_' + dataset + '_comparison_rate.png')
@@ -304,12 +309,17 @@ def create_directory_if_nonexistent(path):
     if not os.path.exists(path):
         os.makedirs(path)
 
+
 def remove_algorithm_prefx(algorithm):
     return algorithm.replace('nd-', '', regex=True).replace('2d-', '', regex=True).replace('3d-', '', regex=True)
 
-def export_for_report(comparison_security: pd.DataFrame, dataset:str, research_question: str, baseline_value: float = None):
+
+def export_for_report(comparison_security: pd.DataFrame, dataset: str, research_question: str,
+                      baseline_value: float = None):
     ## Export tables ##
-    comparison_security.rename(columns={'shokri_mi_adv': 'Shokri MI', 'attack_adv': 'Attack advantage', 'tpr': 'True Positive Rate', 'fpr': 'False Positive Rate'}, inplace=True)
+    comparison_security.rename(
+        columns={'shokri_mi_adv': 'Shokri MI', 'attack_adv': 'Attack advantage', 'tpr': 'True Positive Rate',
+                 'fpr': 'False Positive Rate'}, inplace=True)
     comparison_security['algorithm'] = remove_algorithm_prefx(comparison_security['algorithm'])
     grouped = comparison_security.groupby(['algorithm', 'epsilon']).mean().round(3)
     grouped.drop(columns=['complement'], inplace=True)
@@ -355,7 +365,6 @@ def run_utility_experiments(plain_dataset_path: str, algorithm: str, dataset: st
             perturbed_path=get_export_path(dataset, algorithm), columns=features)
         report.to_csv(get_export_path(dataset, algorithm, prefix='results') + 'utility_scores.csv', index=False)
 
-
     # --- PLOT RESULTS ---
     utility = UtilityPlotter.UtilityPlotter(plain_dataset_path, get_models(dataset, algorithm), columns=features)
     utility.plot_external_validation(report, get_export_path(dataset, algorithm, prefix='results'), save=True)
@@ -392,16 +401,16 @@ def run_comparison_experiment(research_question: str, dataset: str):
                 get_export_path(dataset, algorithm, prefix='results') + '/privacy_scores.csv')
             privacy_metrics['algorithm'] = algorithm
 
-            privacy_distance_dataset = helpers.load_dataset(get_export_path(dataset, algorithm, prefix='results') + 'privacy_distance_scores.csv')
+            privacy_distance_dataset = helpers.load_dataset(
+                get_export_path(dataset, algorithm, prefix='results') + 'privacy_distance_scores.csv')
 
-            #utility_dimensionality_dataset = helpers.load_dataset(get_export_path(dataset, algorithm, prefix='results') + 'utility_dimensionality_scores.csv')
-            
+            # utility_dimensionality_dataset = helpers.load_dataset(get_export_path(dataset, algorithm, prefix='results') + 'utility_dimensionality_scores.csv')
 
             comparison_dp = pd.concat([comparison_dp, ultility_metrics]).reset_index(drop=True)
             comparison_dp_security = pd.concat([comparison_dp_security, privacy_metrics]).reset_index(drop=True)
-            comparison_dp_security_distance = pd.concat([comparison_dp_security_distance, privacy_distance_dataset]).reset_index(drop=True)
+            comparison_dp_security_distance = pd.concat(
+                [comparison_dp_security_distance, privacy_distance_dataset]).reset_index(drop=True)
 
-        
         """
         Load baseline for membership inference attack
         """
@@ -426,16 +435,15 @@ def run_comparison_experiment(research_question: str, dataset: str):
             tpr_baseline=tpr_baseline,
             fpr_baseline=fpr_baseline,
             save_as=get_export_path(dataset, research_question, prefix='results') + 'roc_plot.png')
-        
+
         export_for_report(comparison_dp_security, dataset, research_question, baseline_value=tpr_baseline)
-        
+
         helpers.create_lineplot_of_different_algorithms(
-            comparison_dp_security_distance, 
-            f"Difference in euclidean distance between non-private and private variant of the {dataset} for each mechanism.", 
-            "Epsilon", 
-            "Euclidean distance", 
+            comparison_dp_security_distance,
+            f"Difference in euclidean distance between non-private and private variant of the {dataset} for each mechanism.",
+            "Epsilon",
+            "Euclidean distance",
             safe_path=get_export_path(dataset, research_question, prefix='results') + 'privacy_distance_plot.png')
-        
 
         for metric in ['ami', 'ari', 'ch', 'sc']:
             baseline_value = None
@@ -444,7 +452,6 @@ def run_comparison_experiment(research_question: str, dataset: str):
                 print('baseline value', baseline_value)
             plot_comparison(comparison_dp, dataset, algorithm, metric=metric, research_question=research_question,
                             baseline_value=baseline_value)
-            
 
     print("Concatenated utility results:", comparison_dp.head())
     print("Concatenated security results:", comparison_dp_security.head())
@@ -473,8 +480,10 @@ def run_privacy_experiments(plain_dataset_path: str, algorithm: str, dataset: st
         print('Loading existing distance report')
     else:
         print(X_features.head(), algorithm, dataset)
-        privacy_distance_df = helpers.compute_euclidean_distances_between_two_datasets_per_epsilon(X_features, epsilons, algorithm, dataset)
-        privacy_distance_df.to_csv(get_export_path(dataset, algorithm, prefix='results') + 'privacy_distance_scores.csv', index=False)
+        privacy_distance_df = helpers.compute_euclidean_distances_between_two_datasets_per_epsilon(X_features, epsilons,
+                                                                                                   algorithm, dataset)
+        privacy_distance_df.to_csv(
+            get_export_path(dataset, algorithm, prefix='results') + 'privacy_distance_scores.csv', index=False)
 
     if os.path.isfile(privacy_dataset):
         print('Loading existing report')
@@ -486,6 +495,7 @@ def run_privacy_experiments(plain_dataset_path: str, algorithm: str, dataset: st
                                                 columns=dataset_algorithm_features[algorithm][dataset],
                                                 targets=targets);
         privacy_df.to_csv(get_export_path(dataset, algorithm, prefix='results') + 'privacy_scores.csv', index=False)
+
 
 @app.command()
 def run_experiments_rq3():
@@ -503,19 +513,19 @@ def run_experiments_rq3():
         Run RQ3 things
         """
         for epsilon in epsilons:
-                
+
             utility_dimensional_loc = f'./results/RQ3/{dataset}/utility_dimensionality_scores_{epsilon}.csv'
             security_dimensional_loc = f'./results/RQ3/{dataset}/security_dimensionality_scores.csv'
-            if(os.path.isfile(utility_dimensional_loc)):
+            if (os.path.isfile(utility_dimensional_loc)):
                 print(f'Use existing utility dimensional dataset for {epsilon}')
                 utility_dimensions = helpers.load_dataset(utility_dimensional_loc)
             else:
                 utility_dimensions = rq3_helpers.run_for_dimensions_and_algorithms(
-                    plain_dataset, 
-                    epsilon, 
-                    [k_means_model], 
-                    research_question_3_algorithms, 
-                    dataset=dataset, 
+                    plain_dataset,
+                    epsilon,
+                    [k_means_model],
+                    research_question_3_algorithms,
+                    dataset=dataset,
                     import_path=plain_dataset_location,
                     perturbed_path=f'./data/',
                 )
@@ -525,7 +535,6 @@ def run_experiments_rq3():
             ## PLOT DIMENSIONALITY (Utility) ##
             plot_dimension_comparison(utility_dimensions, dataset, f'utility_dimensions_{epsilon}', metric='ami')
 
-
         if os.path.isfile(security_dimensional_loc):
             print(f'Use existing security dimensional dataset for multiple epsilons')
             security_dimensions = helpers.load_dataset(security_dimensional_loc)
@@ -534,12 +543,14 @@ def run_experiments_rq3():
                 plain_dataset_with_target,
                 ['nd-laplace-optimal-truncated', 'nd-piecewise'],
                 epsilons,
+                n_times=n_times_per_epsilon_for_mi,
                 target_column='class'
             )
             security_dimensions.to_csv(security_dimensional_loc, index=False)
 
         ## PLOT DIMENSIONALITY (Security) ##
-        #plot_dimension_comparison(security_dimensions, dataset, f'security_dimensions', metric='ami')
+        # plot_dimension_comparison(security_dimensions, dataset, f'security_dimensions', metric='ami')
+
 
 if __name__ == "__main__":
     app()
