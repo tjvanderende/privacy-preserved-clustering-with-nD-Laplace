@@ -515,8 +515,9 @@ def run_experiments_rq3():
         for epsilon in epsilons:
 
             utility_dimensional_loc = f'./results/RQ3/{dataset}/utility_dimensionality_scores_{epsilon}.csv'
-            security_dimensional_loc = f'./results/RQ3/{dataset}/security_dimensionality_scores.csv'
-            if (os.path.isfile(utility_dimensional_loc)):
+            security_dimensional_loc = f'./results/RQ3/{dataset}/security_dimensionality_scores'
+            security_dimensional_loc_csv = f'{security_dimensional_loc}.csv'
+            if os.path.isfile(security_dimensional_loc_csv):
                 print(f'Use existing utility dimensional dataset for {epsilon}')
                 utility_dimensions = helpers.load_dataset(utility_dimensional_loc)
             else:
@@ -535,9 +536,9 @@ def run_experiments_rq3():
             ## PLOT DIMENSIONALITY (Utility) ##
             plot_dimension_comparison(utility_dimensions, dataset, f'utility_dimensions_{epsilon}', metric='ami')
 
-        if os.path.isfile(security_dimensional_loc):
+        if os.path.isfile(security_dimensional_loc_csv):
             print(f'Use existing security dimensional dataset for multiple epsilons')
-            security_dimensions = helpers.load_dataset(security_dimensional_loc)
+            security_dimensions = helpers.load_dataset(security_dimensional_loc_csv)
         else:
             security_dimensions = rq3_helpers.run_security_mi_for_dimensions_and_algorithm(
                 plain_dataset_with_target,
@@ -546,10 +547,13 @@ def run_experiments_rq3():
                 n_times=n_times_per_epsilon_for_mi,
                 target_column='class'
             )
-            security_dimensions.to_csv(security_dimensional_loc, index=False)
+            security_dimensions.to_csv(security_dimensional_loc_csv, index=False)
 
         ## PLOT DIMENSIONALITY (Security) ##
-        # plot_dimension_comparison(security_dimensions, dataset, f'security_dimensions', metric='ami')
+        for epsilon in epsilons:
+            security_dimensional_loc_png = f'{security_dimensional_loc}_{epsilon}'
+            rq3_helpers.plot_mi_dimensions(epsilon, security_dimensions, dataset,  ylabel='Shokri MI advantage', xlabel='Number of dimensions', save_path=security_dimensional_loc_png)
+        #plot_dimension_comparison(security_dimensions, dataset, f'security_dimensions', metric='ami')
 
 
 if __name__ == "__main__":

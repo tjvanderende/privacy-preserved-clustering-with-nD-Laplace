@@ -1,13 +1,2 @@
 algorithm,epsilon,True Positive Rate,False Positive Rate
-laplace,2.0,0.729,0.479
-laplace,3.0,0.725,0.485
-laplace,3.5,0.725,0.482
-laplace,5.0,0.722,0.498
 laplace,7.0,0.73,0.488
-laplace-optimal-truncated,1.5,0.724,0.471
-laplace-optimal-truncated,5.0,0.726,0.484
-laplace-optimal-truncated,9.0,0.721,0.482
-laplace-truncated,2.5,0.722,0.472
-laplace-truncated,5.0,0.722,0.475
-laplace-truncated,9.0,0.724,0.485
-piecewise,9.0,0.731,0.188

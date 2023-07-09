@@ -99,3 +99,23 @@ def plot_dimensions(metric: str, epsilon, dataframe, dataset, ylabel='Adjusted R
         plt.clf()
     else:
         plt.show()
+
+
+def plot_mi_dimensions(epsilon, dataframe, dataset, ylabel='Mutual Information (MI)', xlabel='dimensions', save_path=None):
+    dataframe_for_epsilon = dataframe.copy()
+    dataframe_for_epsilon = dataframe_for_epsilon[dataframe_for_epsilon['epsilon'] == epsilon]
+    fig, ax = plt.subplots(figsize=(15, 8))
+    ax.set_title(f"Scores per dimension, for mechanisms: nd-laplace-optimal-truncated and piecewise with {epsilon} for dataset: {dataset}")
+    ax.set_xlabel(xlabel)
+    ax.set_ylabel(ylabel)
+    twinx = ax.twinx()
+    twinx.set_ylabel('True Positive Rate (TPR)')
+    dataframe_for_epsilon = helpers.prepare_for_roc(dataframe_for_epsilon)
+    sns.lineplot(x='dimensions', y='shokri_mi_adv', data=dataframe_for_epsilon, hue='mechanism', style='mechanism', errorbar=None, markers=True, legend=True, ax=ax)
+    sns.lineplot(x='dimensions', y='tpr', data=dataframe_for_epsilon, hue='mechanism', style='mechanism', errorbar=None, markers=True, legend=True, ax=twinx, alpha=0.3)
+    plt.legend(['nd-laplace-optimal-truncated', 'piecewise', 'nd-laplace-optimal-truncated (TPR)', 'piecewise (TPR)'])
+    if save_path is not None:
+        fig.savefig(save_path + '.png')
+        plt.clf()
+    else:
+        plt.show()
