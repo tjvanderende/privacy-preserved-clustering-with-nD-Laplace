@@ -213,7 +213,8 @@ class ldp_mechanism:
         columns = non_private_dataset.columns
         private_dataframe = self.generate_nd_laplace_for_dataset(non_private_dataset)
 
-        print('Approximate the private dataset outside the domain to be inside the domain of the non-private dataset using a grid...')
+        print('Approximate the private dataset outside the domain to be inside the domain of the non-private dataset '
+              'using a grid...')
         perturbed_df_with_grid_remapping = self.grid_remap(non_private_dataset.values, private_dataframe.drop(columns=['r']).values, grid_size=grid_size, columns=columns, include_indicator=True)
         perturbed_df_find_grid_remappings_with_r = pd.concat([private_dataframe['r'], perturbed_df_with_grid_remapping], axis=1)
         print(perturbed_df_with_grid_remapping)

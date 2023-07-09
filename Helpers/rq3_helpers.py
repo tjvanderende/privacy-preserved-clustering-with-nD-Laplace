@@ -4,6 +4,27 @@ import numpy as np
 import pandas as pd
 import seaborn as sns 
 
+def run_security_mi_for_dimensions_and_algorithm(X: pd.DataFrame, algorithm_names, epsilons, n_times=1, target_column='class'):
+    column_size = X.shape[1]
+    x_without_target = X.copy()
+    x_without_target.drop(columns=[target_column], inplace=True)
+    y_true = X[target_column]
+    targets = len(X[target_column].unique())
+    total_df = pd.DataFrame()
+    for algorithm_name in algorithm_names:
+        algorithm = helpers.get_mechanism(algorithm_name)
+        for col in range(4, column_size + 1):
+            print('Adding one column each time...')
+            data = x_without_target.iloc[:,0:col]
+            columns = data.columns
+            print(f"data-shape: {data.shape}")
+            security_df = helpers.run_mi_experiments(data, y_true, epsilons, n_times=n_times, columns=columns, algorithm=algorithm, targets=targets)
+            security_df['dimensions'] = col
+            security_df['mechanism'] = algorithm_name
+            total_df = pd.concat([total_df, security_df], ignore_index=False)
+
+    return total_df
+
 def run_for_dimensions_and_algorithms(X: pd.DataFrame, epsilon, model, perturbing_mechanisms, n_times = 10, dataset=None, import_path='../data/heart-dataset/heart_numerical.csv', perturbed_path=''):
     if(dataset is None):
         raise Exception('Dataset cannot be None')

@@ -100,38 +100,8 @@ dataset_algorithm_features = {
 }
 
 
-def get_mechanism(algorithm):
-    mechanism = ldp_mechanism.ldp_mechanism()
-    if (algorithm == "2d-laplace-truncated"):
-        return twod_laplace.generate_truncated_laplace_noise
-    if (algorithm == "2d-piecewise"):
-        return helpers.generate_piecewise_perturbation
-    if (algorithm == "2d-laplace"):
-        return twod_laplace.generate_laplace_noise_for_dataset
-    if (algorithm == "2d-laplace-optimal-truncated"):
-        return mechanism.randomise
-    if (algorithm == "3d-laplace"):
-        return threed_laplace.generate_3D_noise_for_dataset
-    if (algorithm == "3d-piecewise"):
-        return helpers.generate_piecewise_perturbation
-    if (algorithm == "3d-laplace-truncated"):
-        return threed_laplace.generate_truncated_perturbed_dataset
-    if (algorithm == "3d-laplace-optimal-truncated"):
-        return mechanism.randomise
-    if (algorithm == "nd-laplace-truncated"):
-        return nd_laplace.generate_nd_laplace_noise_for_dataset
-    if (algorithm == "nd-laplace"):
-        return nd_laplace.generate_nd_laplace_noise_for_dataset
-    if (algorithm == "nd-piecewise"):
-        return helpers.generate_piecewise_perturbation;
-    if (algorithm == "nd-laplace-truncated"):
-        return nd_laplace.generate_truncated_nd_laplace_noise_for_dataset
-    if (algorithm == "nd-laplace-optimal-truncated"):
-        return mechanism.randomise
-
-
 def get_noise_adding_mechanism(algorithm: str, plain_df: pd.DataFrame, epsilon: float):
-    mechanism = get_mechanism(algorithm)
+    mechanism = helpers.get_mechanism(algorithm)
     return mechanism(plain_df, epsilon)
 
 
@@ -512,7 +482,7 @@ def run_privacy_experiments(plain_dataset_path: str, algorithm: str, dataset: st
     else:
         # --- RUN EXPERIMENTS ---
         privacy_df = helpers.run_mi_experiments(X_features.values, y_target.values, epsilons,
-                                                algorithm=get_mechanism(algorithm), n_times=50,
+                                                algorithm=helpers.get_mechanism(algorithm), n_times=50,
                                                 columns=dataset_algorithm_features[algorithm][dataset],
                                                 targets=targets);
         privacy_df.to_csv(get_export_path(dataset, algorithm, prefix='results') + 'privacy_scores.csv', index=False)
@@ -525,15 +495,17 @@ def run_experiments_rq3():
 
         k_means_model = get_models(dataset, 'nd-laplace')['KMeans']
         plain_dataset = helpers.load_dataset(plain_dataset_location)
+        plain_dataset_with_target = plain_dataset.copy()
         plain_dataset.drop(columns=['class'], inplace=True)
-
+        epsilons = [0.5, 3, 9]
+        n_times_per_epsilon_for_mi = 50
         """
         Run RQ3 things
         """
-        for epsilon in [0.5, 3, 9]:
+        for epsilon in epsilons:
                 
             utility_dimensional_loc = f'./results/RQ3/{dataset}/utility_dimensionality_scores_{epsilon}.csv'
-            utility_dimensions = None
+            security_dimensional_loc = f'./results/RQ3/{dataset}/security_dimensionality_scores.csv'
             if(os.path.isfile(utility_dimensional_loc)):
                 print(f'Use existing utility dimensional dataset for {epsilon}')
                 utility_dimensions = helpers.load_dataset(utility_dimensional_loc)
@@ -549,10 +521,25 @@ def run_experiments_rq3():
                 )
                 create_directory_if_nonexistent(f'./results/RQ3/{dataset}/')
                 utility_dimensions.to_csv(utility_dimensional_loc, index=False)
-                
+
+            ## PLOT DIMENSIONALITY (Utility) ##
             plot_dimension_comparison(utility_dimensions, dataset, f'utility_dimensions_{epsilon}', metric='ami')
 
 
+        if os.path.isfile(security_dimensional_loc):
+            print(f'Use existing security dimensional dataset for multiple epsilons')
+            security_dimensions = helpers.load_dataset(security_dimensional_loc)
+        else:
+            security_dimensions = rq3_helpers.run_security_mi_for_dimensions_and_algorithm(
+                plain_dataset_with_target,
+                ['nd-laplace-optimal-truncated', 'nd-piecewise'],
+                epsilons,
+                target_column='class'
+            )
+            security_dimensions.to_csv(security_dimensional_loc, index=False)
+
+        ## PLOT DIMENSIONALITY (Security) ##
+        #plot_dimension_comparison(security_dimensions, dataset, f'security_dimensions', metric='ami')
 
 if __name__ == "__main__":
     app()
