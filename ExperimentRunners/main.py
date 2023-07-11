@@ -235,6 +235,29 @@ def plot_bar_colorblindness(bar):
         for bar in bars:
             bar.set_hatch(hatch)
 
+def map_mechanism_to_color(mechanism):
+    if(mechanism == 'nd-laplace' | mechanism == '2d-laplace' | mechanism == '3d-laplace'):
+        return 'green'
+    if(mechanism == 'nd-piecewise' | mechanism == '2d-piecewise' | mechanism == '3d-piecewise'):
+        return 'yellow'
+    if(mechanism == 'nd-laplace-truncated' | mechanism == '2d-laplace-truncated' | mechanism == '3d-laplace-truncated'):
+        return 'blue'
+    if(mechanism == 'nd-laplace-optimal-truncated' | mechanism == '2d-laplace-optimal-truncated' | mechanism == '3d-laplace-optimal-truncated'):
+        return 'red'
+    else:
+        return 'black'
+
+def map_mechanism_to_display_name(mechanism):
+    if(mechanism == 'nd-laplace' | mechanism == '2d-laplace' | mechanism == '3d-laplace'):
+        return 'kd-Laplace'
+    if(mechanism == 'nd-piecewise' | mechanism == '2d-piecewise' | mechanism == '3d-piecewise'):
+        return 'Piecewise'
+    if(mechanism == 'nd-laplace-truncated' | mechanism == '2d-laplace-truncated' | mechanism == '3d-laplace-truncated'):
+        return 'kd-Laplace/grid'
+    if(mechanism == 'nd-laplace-optimal-truncated' | mechanism == '2d-laplace-optimal-truncated' | mechanism == '3d-laplace-optimal-truncated'):
+        return 'kd-Laplace/grid/optimal'
+    else:
+        return 'unknown'
 
 def plot_dimension_comparison(metrics: pd.DataFrame, dataset: str, filename: str, metric='ami', ):
     sns.set(style="whitegrid", color_codes=True)
@@ -507,8 +530,8 @@ def run_experiments_rq3():
         plain_dataset = helpers.load_dataset(plain_dataset_location)
         plain_dataset_with_target = plain_dataset.copy()
         plain_dataset.drop(columns=['class'], inplace=True)
-        epsilons = [0.5, 3, 9]
-        n_times_per_epsilon_for_mi = 50
+        epsilons = helpers.get_experiment_epsilons()
+        n_times_per_epsilon_for_mi = 5
         """
         Run RQ3 things
         """
@@ -517,8 +540,8 @@ def run_experiments_rq3():
             utility_dimensional_loc = f'./results/RQ3/{dataset}/utility_dimensionality_scores_{epsilon}.csv'
             security_dimensional_loc = f'./results/RQ3/{dataset}/security_dimensionality_scores'
             security_dimensional_loc_csv = f'{security_dimensional_loc}.csv'
-            if os.path.isfile(security_dimensional_loc_csv):
-                print(f'Use existing utility dimensional dataset for {epsilon}')
+            if os.path.isfile(utility_dimensional_loc):
+                print(f'Use existing utility dimensional dataset for {epsilon} and dataset: {dataset}')
                 utility_dimensions = helpers.load_dataset(utility_dimensional_loc)
             else:
                 utility_dimensions = rq3_helpers.run_for_dimensions_and_algorithms(
@@ -550,9 +573,9 @@ def run_experiments_rq3():
             security_dimensions.to_csv(security_dimensional_loc_csv, index=False)
 
         ## PLOT DIMENSIONALITY (Security) ##
-        for epsilon in epsilons:
-            security_dimensional_loc_png = f'{security_dimensional_loc}_{epsilon}'
-            rq3_helpers.plot_mi_dimensions(epsilon, security_dimensions, dataset,  ylabel='Shokri MI advantage', xlabel='Number of dimensions', save_path=security_dimensional_loc_png)
+        #for epsilon in epsilons:
+            #security_dimensional_loc_png = f'{security_dimensional_loc}_{epsilon}'
+            #rq3_helpers.plot_mi_dimensions(epsilon, security_dimensions, dataset,  ylabel='Shokri MI advantage', xlabel='Number of dimensions', save_path=security_dimensional_loc_png)
         #plot_dimension_comparison(security_dimensions, dataset, f'security_dimensions', metric='ami')
 
 
