@@ -532,6 +532,7 @@ def run_experiments_rq3():
         plain_dataset.drop(columns=['class'], inplace=True)
         epsilons = helpers.get_experiment_epsilons()
         n_times_per_epsilon_for_mi = 5
+        algorithms_to_consider = ['nd-laplace-optimal-truncated', 'nd-piecewise']
         """
         Run RQ3 things
         """
@@ -565,7 +566,7 @@ def run_experiments_rq3():
         else:
             security_dimensions = rq3_helpers.run_security_mi_for_dimensions_and_algorithm(
                 plain_dataset_with_target,
-                ['nd-laplace-optimal-truncated', 'nd-piecewise'],
+                algorithms_to_consider,
                 epsilons,
                 n_times=n_times_per_epsilon_for_mi,
                 target_column='class'
@@ -577,6 +578,12 @@ def run_experiments_rq3():
             #security_dimensional_loc_png = f'{security_dimensional_loc}_{epsilon}'
             #rq3_helpers.plot_mi_dimensions(epsilon, security_dimensions, dataset,  ylabel='Shokri MI advantage', xlabel='Number of dimensions', save_path=security_dimensional_loc_png)
         #plot_dimension_comparison(security_dimensions, dataset, f'security_dimensions', metric='ami')
+        for algorithm in algorithms_to_consider:
+            rq3_helpers.plot_mi_heatmap(
+                security_dimensions[security_dimensions['mechanism'] == algorithm],
+                dataset,
+                save_path=f'./results/RQ3/{dataset}/security_dimensions_heatmap_{algorithm}.png'
+            )
 
 
 if __name__ == "__main__":

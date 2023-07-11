@@ -25,6 +25,23 @@ def run_security_mi_for_dimensions_and_algorithm(X: pd.DataFrame, algorithm_name
 
     return total_df
 
+def plot_mi_heatmap(mi_scores_df, dataset, save_path=None):
+    fig, ax = plt.subplots(figsize=(15, 8))
+
+    prepared_df = mi_scores_df.copy()
+    prepared_df = helpers.prepare_for_roc(prepared_df)
+    prepared_df_mean = prepared_df.groupby(['epsilon', 'dimensions'])['tpr'].mean().reset_index()
+    prepared_df_pivot = prepared_df_mean.pivot(index='epsilon', columns='dimensions', values='tpr')
+    sns.heatmap(prepared_df_pivot, annot=True, fmt=".2f", linewidths=.5, ax=ax, cmap="Blues")
+    ax.set_title(f"MI Scores for dataset: {dataset} with epsilon and dimensions")
+    ax.set_xlabel('Dimensions')
+    ax.set_ylabel('Epsilon')
+    if save_path is not None:
+        plt.savefig(save_path)
+        plt.clf()
+    else:
+        plt.show()
+
 def run_for_dimensions_and_algorithms(X: pd.DataFrame, epsilon, model, perturbing_mechanisms, n_times = 10, dataset=None, import_path='../data/heart-dataset/heart_numerical.csv', perturbed_path=''):
     if(dataset is None):
         raise Exception('Dataset cannot be None')
