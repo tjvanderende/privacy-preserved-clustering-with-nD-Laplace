@@ -25,8 +25,21 @@ class UtilityPlotter:
         self.fig = fig
         self.axs = axs
 
+    def get_color_for_cluster_algorithm(self, name:str):
+        if name.__contains__('KMeans'):
+            return 'blue'
+        elif name.__contains__('Affinity'):
+            return 'red'
+        elif name.__contains__('OPTICS'):
+            return 'green'
+
+    def generate_color_palette(self, algorithms):
+        return {algorithm: self.get_color_for_cluster_algorithm(algorithm) for algorithm in algorithms}
+
     def add_utility_plot(self, result, metric_name, epsilons,  metric = 'Adjusted Mutual Information (AMI)', title='External validation (AMI & ARI): Difference between privately trained cluster algorithms versus \n non-private trained cluster algorithms', graph_index=0):
-        ax = sns.lineplot(x='epsilon', y=metric_name, data=result, ax=self.axs[graph_index], style='type', hue='type', markers=True, legend=True)
+        types = result['type'].unique()
+        ax = sns.lineplot(x='epsilon', y=metric_name, data=result, ax=self.axs[graph_index], style='type', hue='type',
+                          palette=self.generate_color_palette(types), markers=True, legend=True)
         ax.set_xticks(epsilons, labels=epsilons)
         ax.set_title(title)
         ax.set_xlabel('Privacy budget ($\epsilon$)')

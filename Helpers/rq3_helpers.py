@@ -29,13 +29,14 @@ def plot_mi_heatmap(mi_scores_df, dataset, save_path=None):
     fig, ax = plt.subplots(figsize=(15, 8))
 
     prepared_df = mi_scores_df.copy()
-    prepared_df = helpers.prepare_for_roc(prepared_df)
+    prepared_df['tpr'] = prepared_df['tpr'].apply(
+        lambda x: float(x.strip('[]').split()[1]) if type(x) is not float else x)
     prepared_df_mean = prepared_df.groupby(['epsilon', 'dimensions'])['tpr'].mean().reset_index()
     prepared_df_pivot = prepared_df_mean.pivot(index='epsilon', columns='dimensions', values='tpr')
     sns.heatmap(prepared_df_pivot, annot=True, fmt=".2f", linewidths=.5, ax=ax, cmap="Blues")
     ax.set_title(f"MI Scores for dataset: {dataset} with epsilon and dimensions")
     ax.set_xlabel('Dimensions')
-    ax.set_ylabel('Epsilon')
+    ax.set_ylabel('Privacy budgets($\epsilon$)')
     if save_path is not None:
         plt.savefig(save_path)
         plt.clf()

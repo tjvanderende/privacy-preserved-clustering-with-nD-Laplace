@@ -145,7 +145,7 @@ def get_models(dataset: str, algorithm: str):
         return {
             'KMeans': KMeans(n_clusters=4, init='random', algorithm='lloyd'),
             'AffinityPropagation': AffinityPropagation(damping=0.5, affinity='euclidean'),
-            'OPTICS': OPTICS(min_samples=4, metric='euclidean')
+            'OPTICS': OPTICS(min_samples=12, metric='euclidean')
         }
     if (dataset == "heart-dataset" and algorithm in ['2d-laplace-truncated', '2d-laplace', '2d-piecewise',
                                                      '2d-laplace-optimal-truncated']):
@@ -166,7 +166,7 @@ def get_models(dataset: str, algorithm: str):
         return {
             'KMeans': KMeans(n_clusters=4, init='random', algorithm='lloyd'),
             # 'AffinityPropagation': AffinityPropagation(damping=0.5, affinity='euclidean'),
-            'OPTICS': OPTICS(min_samples=7, metric='euclidean')
+            'OPTICS': OPTICS(min_samples=18, metric='euclidean')
         }
 
 
@@ -235,29 +235,36 @@ def plot_bar_colorblindness(bar):
         for bar in bars:
             bar.set_hatch(hatch)
 
+
+def generate_color_palette(mechanisms):
+    return {mechanism: map_mechanism_to_color(mechanism) for mechanism in mechanisms}
+
+
 def map_mechanism_to_color(mechanism):
-    if(mechanism == 'nd-laplace' | mechanism == '2d-laplace' | mechanism == '3d-laplace'):
+    if mechanism == 'kd-Laplace/grid/optimal':
         return 'green'
-    if(mechanism == 'nd-piecewise' | mechanism == '2d-piecewise' | mechanism == '3d-piecewise'):
-        return 'yellow'
-    if(mechanism == 'nd-laplace-truncated' | mechanism == '2d-laplace-truncated' | mechanism == '3d-laplace-truncated'):
+    if mechanism == 'Piecewise':
+        return 'orange'
+    if mechanism == 'kd-Laplace/grid':
         return 'blue'
-    if(mechanism == 'nd-laplace-optimal-truncated' | mechanism == '2d-laplace-optimal-truncated' | mechanism == '3d-laplace-optimal-truncated'):
+    if mechanism == 'kd-Laplace':
         return 'red'
     else:
         return 'black'
 
+
 def map_mechanism_to_display_name(mechanism):
-    if(mechanism == 'nd-laplace' | mechanism == '2d-laplace' | mechanism == '3d-laplace'):
+    if mechanism == 'nd-laplace' or mechanism == '2d-laplace' or mechanism == '3d-laplace':
         return 'kd-Laplace'
-    if(mechanism == 'nd-piecewise' | mechanism == '2d-piecewise' | mechanism == '3d-piecewise'):
+    if mechanism == 'nd-piecewise' or mechanism == '2d-piecewise' or mechanism == '3d-piecewise':
         return 'Piecewise'
-    if(mechanism == 'nd-laplace-truncated' | mechanism == '2d-laplace-truncated' | mechanism == '3d-laplace-truncated'):
+    if mechanism == 'nd-laplace-truncated' or mechanism == '2d-laplace-truncated' or mechanism == '3d-laplace-truncated':
         return 'kd-Laplace/grid'
-    if(mechanism == 'nd-laplace-optimal-truncated' | mechanism == '2d-laplace-optimal-truncated' | mechanism == '3d-laplace-optimal-truncated'):
+    if mechanism == 'nd-laplace-optimal-truncated' or mechanism == '2d-laplace-optimal-truncated' or mechanism == '3d-laplace-optimal-truncated':
         return 'kd-Laplace/grid/optimal'
     else:
-        return 'unknown'
+        return mechanism
+
 
 def plot_dimension_comparison(metrics: pd.DataFrame, dataset: str, filename: str, metric='ami', ):
     sns.set(style="whitegrid", color_codes=True)
@@ -281,14 +288,19 @@ def plot_comparison(utility_metrics: pd.DataFrame,
                     research_question='RQ1'):
     sns.set(style="whitegrid", color_codes=True)
     fig, ax = plt.subplots(figsize=(20, 10))
-    bar = sns.barplot(x='epsilon', y=metric, hue="algorithm", data=utility_metrics, ax=ax)
+    utility_metrics['algorithm'] = utility_metrics['algorithm'].apply(lambda x: map_mechanism_to_display_name(x))
+    algorithms = utility_metrics['algorithm'].unique()
+    bar = sns.barplot(x='epsilon', y=metric, hue="algorithm", data=utility_metrics, ax=ax,
+                      palette=generate_color_palette(algorithms))
+
     algorithm = utility_metrics.iloc[0]['algorithm'] if mechanism_comparison is None else mechanism_comparison
     features = dataset_algorithm_features[algorithm_type][dataset]
     if baseline_value is not None:
         ax.axhline(y=baseline_value, linestyle='--', label='non-private K-Means (baseline)')
-    if tpr_baseline is not None and fpr_baseline is not None:
+    if tpr_baseline is not None:
         ax.axhline(y=tpr_baseline, linestyle='solid', label=f'non-private TPR (baseline: {tpr_baseline:.2f})',
                    color='red')
+    if fpr_baseline is not None:
         ax.axhline(y=fpr_baseline, linestyle='solid', label=f'non-private FPR (baseline: {fpr_baseline:.2f})',
                    color='green')
     ax.set_title(
@@ -299,26 +311,34 @@ def plot_comparison(utility_metrics: pd.DataFrame,
     fig.savefig('results/' + research_question + '/' + dataset + '/' + metric + '_' + dataset + '_comparison.png')
     plt.clf()
 
+def create_lineplot_of_different_algorithms(df: pd.DataFrame, title, xlabel, ylabel, safe_path=None):
+    sns.set_theme(style="whitegrid")
+    fig, ax = plt.subplots(figsize=(15, 5))
+    df['algorithm'] = df['algorithm'].apply(lambda x: map_mechanism_to_display_name(x))
+    mechanisms = df['algorithm'].unique()
+    ax = sns.lineplot(x="epsilon", y="distance", hue="algorithm", data=df, ax=ax, style='algorithm', palette=generate_color_palette(mechanisms), markers=True)
+    ax.set_title(title)
+    ax.set_xlabel(xlabel)
+    ax.set_ylabel(ylabel)
+    ax.set_xticks(df['epsilon'].unique())
+    ax.set_xticklabels(df['epsilon'].unique(), rotation=45)
+    ax.set_yscale('log')
+    ax.legend(title='Mechanism')
 
-def plot_tpr_fpr_comparison(private_dataset: pd.DataFrame, dataset, research_question='RQ1', metric='Shokri MI'):
+    if (safe_path is not None):
+        fig.savefig(safe_path)
+        plt.clf()
+    else:
+        plt.show()
+
+def plot_tpr_fpr_comparison(private_dataset: pd.DataFrame, dataset, algorithm:str, research_question='RQ1', metric='Shokri MI', baseline_tpr=None):
     sns.set(style="whitegrid", color_codes=True)
     fig, ax = plt.subplots(figsize=(20, 10))
     prepared_data = helpers.prepare_for_roc(private_dataset)
     private_dataset['tpr'] = prepared_data['tpr']
-    private_dataset['fpr'] = prepared_data['fpr']
     private_dataset.drop(columns=['run', 'shokri_mi_adv', 'attack_adv'], inplace=True)
-
-    df_stacked = private_dataset
-    df_stacked['complement'] = 1
-
-    # Create the grouped bar plot using seaborn
-    sns.barplot(x='epsilon', y='tpr', hue='algorithm',
-                data=df_stacked, ci=None, palette='colorblind')
-
     # Plot the complement bars
-    sns.barplot(x='epsilon', y='complement', hue='algorithm',
-                data=df_stacked, ci=None, palette='colorblind', alpha=0.3)
-
+    plot_comparison(private_dataset, dataset, algorithm, metric='tpr', research_question=research_question, tpr_baseline=baseline_tpr)
     # private_dataset.groupby(['epsilon', 'algorithm']).mean().plot(kind='bar', stacked=True, y=['tpr', 'fpr'], ax=ax)
     # bar2 = sns.barplot(x='epsilon', y='fpr', hue="algorithm", data=prepared_data, ax=ax, alpha=0.5)
     # bar = sns.barplot(x='epsilon', y='tpr', hue="algorithm", data=prepared_data, ax=ax)
@@ -448,20 +468,20 @@ def run_comparison_experiment(research_question: str, dataset: str):
                         metric='shokri_mi_adv',
                         mechanism_comparison='Adversary advantage',
                         research_question=research_question)
-        plot_tpr_fpr_comparison(comparison_dp_security, dataset, research_question=research_question)
-        roc_plot_title = 'ROC plot on ' + dataset + '/n with shape: ' + str(ultility_metrics.shape)
+        plot_tpr_fpr_comparison(comparison_dp_security, dataset, algorithm, research_question=research_question, baseline_tpr=tpr_baseline)
+        #roc_plot_title = 'ROC plot on ' + dataset + '/n with shape: ' + str(ultility_metrics.shape)
 
-        helpers.display_roc_plot(
+        """helpers.display_roc_plot(
             comparison_dp_security,
             algorithms,
             title=roc_plot_title,
             tpr_baseline=tpr_baseline,
             fpr_baseline=fpr_baseline,
-            save_as=get_export_path(dataset, research_question, prefix='results') + 'roc_plot.png')
+            save_as=get_export_path(dataset, research_question, prefix='results') + 'roc_plot.png') """
 
-        export_for_report(comparison_dp_security, dataset, research_question, baseline_value=tpr_baseline)
+        # export_for_report(comparison_dp_security, dataset, research_question, baseline_value=tpr_baseline)
 
-        helpers.create_lineplot_of_different_algorithms(
+        create_lineplot_of_different_algorithms(
             comparison_dp_security_distance,
             f"Difference in euclidean distance between non-private and private variant of the {dataset} for each mechanism.",
             "Epsilon",
@@ -531,7 +551,7 @@ def run_experiments_rq3():
         plain_dataset_with_target = plain_dataset.copy()
         plain_dataset.drop(columns=['class'], inplace=True)
         epsilons = helpers.get_experiment_epsilons()
-        n_times_per_epsilon_for_mi = 5
+        n_times_per_epsilon_for_mi = 50
         algorithms_to_consider = ['nd-laplace-optimal-truncated', 'nd-piecewise']
         """
         Run RQ3 things
@@ -574,10 +594,10 @@ def run_experiments_rq3():
             security_dimensions.to_csv(security_dimensional_loc_csv, index=False)
 
         ## PLOT DIMENSIONALITY (Security) ##
-        #for epsilon in epsilons:
-            #security_dimensional_loc_png = f'{security_dimensional_loc}_{epsilon}'
-            #rq3_helpers.plot_mi_dimensions(epsilon, security_dimensions, dataset,  ylabel='Shokri MI advantage', xlabel='Number of dimensions', save_path=security_dimensional_loc_png)
-        #plot_dimension_comparison(security_dimensions, dataset, f'security_dimensions', metric='ami')
+        # for epsilon in epsilons:
+        # security_dimensional_loc_png = f'{security_dimensional_loc}_{epsilon}'
+        # rq3_helpers.plot_mi_dimensions(epsilon, security_dimensions, dataset,  ylabel='Shokri MI advantage', xlabel='Number of dimensions', save_path=security_dimensional_loc_png)
+        # plot_dimension_comparison(security_dimensions, dataset, f'security_dimensions', metric='ami')
         for algorithm in algorithms_to_consider:
             rq3_helpers.plot_mi_heatmap(
                 security_dimensions[security_dimensions['mechanism'] == algorithm],

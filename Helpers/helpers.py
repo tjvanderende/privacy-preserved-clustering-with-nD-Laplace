@@ -390,27 +390,7 @@ def compute_euclidean_distances_between_two_datasets_per_epsilon(plain_df, epsil
     df = pd.DataFrame(distances)
     df['algorithm'] = algorithm
     df['dataset'] = dataset
-    return df;
-
-
-def create_lineplot_of_different_algorithms(df: pd.DataFrame, title, xlabel, ylabel, safe_path=None):
-    sns.set_theme(style="whitegrid")
-    fig, ax = plt.subplots(figsize=(15, 5))
-    ax = sns.lineplot(x="epsilon", y="distance", hue="algorithm", data=df, ax=ax, style='algorithm', markers=True)
-    ax.set_title(title)
-    ax.set_xlabel(xlabel)
-    ax.set_ylabel(ylabel)
-    ax.set_xticks(df['epsilon'].unique())
-    ax.set_xticklabels(df['epsilon'].unique(), rotation=45)
-    ax.set_yscale('log')
-    ax.legend(title='Mechanism')
-
-    if (safe_path is not None):
-        fig.savefig(safe_path)
-        plt.clf()
-    else:
-        plt.show()
-
+    return df
 
 def get_mechanism(algorithm):
     mechanism = ldp_mechanism()
