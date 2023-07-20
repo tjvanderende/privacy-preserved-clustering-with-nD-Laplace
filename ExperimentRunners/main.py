@@ -21,19 +21,33 @@ supported_algorithms = ["2d-laplace-truncated", "2d-piecewise", "2d-laplace", "3
                         "3d-laplace-truncated", '2d-laplace-optimal-truncated', '3d-laplace-optimal-truncated',
                         "nd-piecewise", "nd-laplace", "nd-laplace-truncated", "nd-laplace-optimal-truncated"]
 supported_datasets = ["seeds-dataset", "heart-dataset"]
+datasets_rq3_shape_research = ["circle-dataset", "line-dataset", "skewed-dataset"]
+metric_names = {
+    'sc': 'Silhouette Coefficient',
+    'ch': 'Calinski-Harabasz Index',
+    'ami': 'Adjusted Mutual Information',
+    'ari': 'Adjusted Rand Index'
+}
 dataset_locations = {
     "seeds-dataset": {
         "RQ1": "../data/seeds-dataset/rq1.csv",
         "RQ2": "../data/seeds-dataset/rq2.csv",
         "RQ2-nd": "../data/seeds-dataset/rq2-nd.csv"
-
     },
     "heart-dataset": {
         "RQ1": "../data/heart-dataset/heart_numerical.csv",
         "RQ2": "../data/heart-dataset/heart_numerical.csv",
         "RQ2-nd": "../data/heart-dataset/heart_numerical.csv"
+    },
+    "circle-dataset": {
+        "RQ3": "../data/circle-dataset/circle_1000.csv",
+    },
+    "line-dataset": {
+        "RQ3": "../data/line-dataset/line_1000.csv",
+    },
+    "skewed-dataset": {
+        "RQ3": "../data/skewed-dataset/skewed_1000.csv",
     }
-
 }
 dataset_algorithm_features = {
     "2d-laplace-truncated": {
@@ -42,11 +56,17 @@ dataset_algorithm_features = {
     },
     "2d-piecewise": {
         "seeds-dataset": ["area", "perimeter"],
-        "heart-dataset": ['baseline value', 'histogram_min']
+        "heart-dataset": ['baseline value', 'histogram_min'],
+        "circle-dataset": ["x1", "x2"],
+        "line-dataset": ["x1", "x2"],
+        "skewed-dataset": ["x1", "x2"]
     },
     "2d-laplace-optimal-truncated": {
         "seeds-dataset": ["area", "perimeter"],
-        "heart-dataset": ['baseline value', 'histogram_min']
+        "heart-dataset": ['baseline value', 'histogram_min'],
+        "circle-dataset": ["x1", "x2"],
+        "line-dataset": ["x1", "x2"],
+        "skewed-dataset": ["x1", "x2"]
     },
     "2d-laplace": {
         "seeds-dataset": ["area", "perimeter"],
@@ -168,38 +188,15 @@ def get_models(dataset: str, algorithm: str):
             # 'AffinityPropagation': AffinityPropagation(damping=0.5, affinity='euclidean'),
             'OPTICS': OPTICS(min_samples=18, metric='euclidean')
         }
-
-
-def get_models_for_comparison(dataset: str, algorithm: str):
-    if (dataset == "seeds-dataset" and algorithm in ["2d-laplace-truncated", "2d-piecewise", "2d-laplace",
-                                                     "2d-laplace-optimal-truncated"]):
-        return {
-            '2d-piecewise': KMeans(n_clusters=4, init='random', algorithm='lloyd'),
-            '2d-laplace-truncated': KMeans(n_clusters=4, init='random', algorithm='lloyd'),
-            '2d-laplace-optimal-truncated': KMeans(n_clusters=4, init='random', algorithm='lloyd')
-        }
-    if (dataset == "seeds-dataset" and algorithm in ["3d-laplace", "3d-piecewise", "3d-laplace-truncated",
-                                                     "3d-laplace-optimal-truncated"]):
-        return {
-            '3d-laplace': KMeans(n_clusters=4, init='random', algorithm='lloyd'),
-        }
-    if (dataset == "seeds-dataset" or "heart-dataset" and algorithm in ["nd-piecewise", "nd-laplace",
-                                                                        "nd-laplace-truncated",
-                                                                        "nd-laplace-optimal-truncated"]):
-        return {
-            'nd-piecewise': KMeans(n_clusters=4, init='random', algorithm='lloyd'),
-            'nd-laplace': KMeans(n_clusters=4, init='random', algorithm='lloyd'),
-            'nd-laplace-truncated': KMeans(n_clusters=4, init='random', algorithm='lloyd'),
-            'nd-laplace-optimal-truncated': KMeans(n_clusters=4, init='random', algorithm='lloyd')
-        }
-    if (dataset == "heart-dataset" and algorithm in ['2d-laplace-truncated', '2d-laplace', '2d-piecewise',
-                                                     '2d-laplace-optimal-truncated']):
-        return {
-            '2d-laplace-truncated': KMeans(n_clusters=4, init='random', algorithm='lloyd'),
-            '2d-laplace': KMeans(n_clusters=4, init='random', algorithm='lloyd'),
-            '2d-piecewise': KMeans(n_clusters=4, init='random', algorithm='lloyd'),
-            '2d-laplace-optimal-truncated': KMeans(n_clusters=4, init='random', algorithm='lloyd'),
-        }
+    if dataset == "circle-dataset" or dataset == "line-dataset" or dataset == "skewed-dataset" and algorithm in ["2d-laplace-optimal-truncated", "2d-piecewise"]:
+        if dataset == "circle-dataset":
+            return {
+                'KMeans': KMeans(n_clusters=5, init='random', algorithm='lloyd'),
+            }
+        else:
+            return {
+                'KMeans': KMeans(n_clusters=4, init='random', algorithm='lloyd'),
+            }
 
 
 def find_baseline_values(plain_df: pd.DataFrame, model: KMeans, n_times=10):
@@ -213,7 +210,6 @@ def find_baseline_values(plain_df: pd.DataFrame, model: KMeans, n_times=10):
         ch_scores.append(ch)
         sc_scores.append(sc)
     return {'sc': np.mean(sc_scores), 'ch': np.mean(ch_scores)}
-
 
 def find_baseline_mi_values(plain_df: pd.DataFrame, y_target, n_times=10):
     plain_df_copy = plain_df.copy()
@@ -284,14 +280,18 @@ def plot_comparison(utility_metrics: pd.DataFrame,
                     fpr_baseline=None,
                     baseline_value=None,
                     metric="Adjusted Mutual Information",
+                    metric_name=None,
                     mechanism_comparison=None,
                     research_question='RQ1'):
     sns.set(style="whitegrid", color_codes=True)
     fig, ax = plt.subplots(figsize=(20, 10))
     utility_metrics['algorithm'] = utility_metrics['algorithm'].apply(lambda x: map_mechanism_to_display_name(x))
     algorithms = utility_metrics['algorithm'].unique()
-    bar = sns.barplot(x='epsilon', y=metric, hue="algorithm", data=utility_metrics, ax=ax,
-                      palette=generate_color_palette(algorithms))
+    if len(algorithms) > 1:
+        bar = sns.barplot(x='epsilon', y=metric, hue="algorithm", data=utility_metrics, ax=ax,
+                          palette=generate_color_palette(algorithms))
+    else:
+        bar = sns.barplot(x='epsilon', y=metric, data=utility_metrics, ax=ax)
 
     algorithm = utility_metrics.iloc[0]['algorithm'] if mechanism_comparison is None else mechanism_comparison
     features = dataset_algorithm_features[algorithm_type][dataset]
@@ -306,7 +306,8 @@ def plot_comparison(utility_metrics: pd.DataFrame,
     ax.set_title(
         f"Comparison of {metric} for {dataset} using K-Means. Algorithm: {algorithm}. Dimensions: {len(features)}")
     plot_bar_colorblindness(bar)
-
+    ax.set_xlabel('Privacy Budget (epsilon)')
+    ax.set_ylabel(metric if metric_name is None else metric_name)
     ax.legend(title='Mechanism')
     fig.savefig('results/' + research_question + '/' + dataset + '/' + metric + '_' + dataset + '_comparison.png')
     plt.clf()
@@ -338,7 +339,7 @@ def plot_tpr_fpr_comparison(private_dataset: pd.DataFrame, dataset, algorithm:st
     private_dataset['tpr'] = prepared_data['tpr']
     private_dataset.drop(columns=['run', 'shokri_mi_adv', 'attack_adv'], inplace=True)
     # Plot the complement bars
-    plot_comparison(private_dataset, dataset, algorithm, metric='tpr', research_question=research_question, tpr_baseline=baseline_tpr)
+    plot_comparison(private_dataset, dataset, algorithm, metric='tpr', metric_name="True Positive Rate (TPR)", research_question=research_question, tpr_baseline=baseline_tpr)
     # private_dataset.groupby(['epsilon', 'algorithm']).mean().plot(kind='bar', stacked=True, y=['tpr', 'fpr'], ax=ax)
     # bar2 = sns.barplot(x='epsilon', y='fpr', hue="algorithm", data=prepared_data, ax=ax, alpha=0.5)
     # bar = sns.barplot(x='epsilon', y='tpr', hue="algorithm", data=prepared_data, ax=ax)
@@ -386,16 +387,21 @@ def run_utility_experiments(plain_dataset_path: str, algorithm: str, dataset: st
     create_directory_if_nonexistent(get_export_path(dataset, algorithm))
     # --- RUN PERTURBATION ALGORITHM ---
     for epsilon in epsilons:
-        Z = get_noise_adding_mechanism(algorithm, plain_df[features], epsilon)
-        Z_pd = pd.DataFrame(Z, columns=features)
-        Z_pd.to_csv(get_export_path(dataset, algorithm, epsilon), index=False)
+        print(f'Running perturbation for {epsilon}')
+        Z_location = get_export_path(dataset, algorithm, epsilon)
+        if(os.path.isfile(Z_location)):
+            print('Already created perturbed dataset')
+        else:
+            Z = get_noise_adding_mechanism(algorithm, plain_df[features], epsilon)
+            Z_pd = pd.DataFrame(Z, columns=features)
+            Z_pd.to_csv(Z_location, index=False)
 
     supported_models = list(get_models(dataset, algorithm).values())
     print('Generated report for: ', supported_models)
 
     # --- RUN CLUSTERING ALGORITHMS ---
     create_directory_if_nonexistent(get_export_path(dataset, algorithm, prefix='results'))
-    utility_dataset = get_export_path(dataset, algorithm, prefix='results') + 'utility_scores.csv';
+    utility_dataset = get_export_path(dataset, algorithm, prefix='results') + 'utility_scores.csv'
     if os.path.isfile(utility_dataset):
         print('Loading existing utility report')
         report = helpers.load_dataset(utility_dataset)
@@ -421,12 +427,17 @@ def run_comparison_experiment(research_question: str, dataset: str):
     print(f'Running {research_question}')
     algorithm = '2d-laplace-truncated' if research_question == 'RQ1' else '3d-laplace' if research_question == 'RQ2' else 'nd-laplace'
     algorithms = research_question_1_algorithms if research_question == 'RQ1' else research_question_2_algorithms if research_question == 'RQ2' else research_question_3_algorithms
-    algorithm_model = get_models(dataset=dataset, algorithm=algorithm)['KMeans']
-    model_name = helpers.map_models_to_name(algorithm_model)
+    ## TODO: Should be better integrated with the other experiments
+    if research_question == 'RQ3':
+        algorithm = '2d-laplace-optimal-truncated'
+        algorithms = ['2d-laplace-optimal-truncated', '2d-piecewise']
 
-    print('Considering:', model_name)
+    datasets = datasets_rq3_shape_research if research_question == 'RQ3' else supported_datasets
     print('Algorithms', algorithms)
-    for dataset in supported_datasets:
+    for dataset in datasets:
+        algorithm_model = get_models(dataset=dataset, algorithm=algorithm)['KMeans']
+        model_name = helpers.map_models_to_name(algorithm_model)
+        print('Considering:', model_name)
         comparison_dp = pd.DataFrame()
         comparison_dp_security = pd.DataFrame()
         comparison_dp_security_distance = pd.DataFrame()
@@ -436,6 +447,7 @@ def run_comparison_experiment(research_question: str, dataset: str):
             # external_laplace = helpers.load_dataset(get_export_path('seeds-dataset', '2d-laplace-truncated', prefix='results')+'utility_scores.csv')
             ultility_metrics = helpers.load_dataset(
                 get_export_path(dataset, algorithm, prefix='results') + '/utility_scores.csv')
+
             ultility_metrics = ultility_metrics[ultility_metrics['type'] == model_name]
             ultility_metrics['algorithm'] = algorithm
 
@@ -467,6 +479,7 @@ def run_comparison_experiment(research_question: str, dataset: str):
                         algorithm,
                         metric='shokri_mi_adv',
                         mechanism_comparison='Adversary advantage',
+                        metric_name='Adversary advantage',
                         research_question=research_question)
         plot_tpr_fpr_comparison(comparison_dp_security, dataset, algorithm, research_question=research_question, baseline_tpr=tpr_baseline)
         #roc_plot_title = 'ROC plot on ' + dataset + '/n with shape: ' + str(ultility_metrics.shape)
@@ -493,7 +506,9 @@ def run_comparison_experiment(research_question: str, dataset: str):
             if metric == 'ch' or metric == 'sc':
                 baseline_value = find_baseline_values(plain_df, algorithm_model)[metric]
                 print('baseline value', baseline_value)
-            plot_comparison(comparison_dp, dataset, algorithm, metric=metric, research_question=research_question,
+            metric_name = metric_names[metric]
+            print('comparison_dp', comparison_dp.head(), algorithm, metric_name, metric)
+            plot_comparison(comparison_dp, dataset, algorithm, metric=metric, metric_name=metric_name, research_question=research_question,
                             baseline_value=baseline_value)
 
     print("Concatenated utility results:", comparison_dp.head())
@@ -557,7 +572,6 @@ def run_experiments_rq3():
         Run RQ3 things
         """
         for epsilon in epsilons:
-
             utility_dimensional_loc = f'./results/RQ3/{dataset}/utility_dimensionality_scores_{epsilon}.csv'
             security_dimensional_loc = f'./results/RQ3/{dataset}/security_dimensionality_scores'
             security_dimensional_loc_csv = f'{security_dimensional_loc}.csv'

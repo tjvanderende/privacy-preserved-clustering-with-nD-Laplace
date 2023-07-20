@@ -186,7 +186,7 @@ def run_mi_experiments(X, y_true, epsilons, n_times=10, algorithm=None, targets=
             shokri_mi_avgs['run'].append(run)
 
             shadow_ratio = 0.75
-            dataset = train_test_split(X_pd, y_true, test_size=shadow_ratio)
+            dataset = train_test_split(X_pd, y_true, test_size=shadow_ratio, stratify=y_true)
 
             x_target, x_shadow, y_target, y_shadow = dataset
 
@@ -411,11 +411,11 @@ def get_mechanism(algorithm):
     if (algorithm == "3d-laplace-optimal-truncated"):
         return mechanism.randomise
     if (algorithm == "nd-laplace-truncated"):
-        return nd_laplace.generate_nd_laplace_noise_for_dataset
+        return nd_laplace.generate_truncated_nd_laplace_noise_for_dataset
     if (algorithm == "nd-laplace"):
         return nd_laplace.generate_nd_laplace_noise_for_dataset
     if (algorithm == "nd-piecewise"):
-        return generate_piecewise_perturbation;
+        return generate_piecewise_perturbation
     if (algorithm == "nd-laplace-truncated"):
         return nd_laplace.generate_truncated_nd_laplace_noise_for_dataset
     if (algorithm == "nd-laplace-optimal-truncated"):

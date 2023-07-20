@@ -34,7 +34,7 @@ def plot_mi_heatmap(mi_scores_df, dataset, save_path=None):
     prepared_df_mean = prepared_df.groupby(['epsilon', 'dimensions'])['tpr'].mean().reset_index()
     prepared_df_pivot = prepared_df_mean.pivot(index='epsilon', columns='dimensions', values='tpr')
     sns.heatmap(prepared_df_pivot, annot=True, fmt=".2f", linewidths=.5, ax=ax, cmap="Blues")
-    ax.set_title(f"MI Scores for dataset: {dataset} with epsilon and dimensions")
+    ax.set_title(f"TPR Scores for dataset: {dataset} with epsilon and dimensions")
     ax.set_xlabel('Dimensions')
     ax.set_ylabel('Privacy budgets($\epsilon$)')
     if save_path is not None:
@@ -48,7 +48,7 @@ def run_for_dimensions_and_algorithms(X: pd.DataFrame, epsilon, model, perturbin
         raise Exception('Dataset cannot be None')
     
     column_size = X.shape[1]
-    dataframe = pd.DataFrame();
+    dataframe = pd.DataFrame()
     for algorithm in perturbing_mechanisms:
         print('Running for algorithm ' + algorithm)
         perturbed_path_cp = perturbed_path + algorithm + '/' + dataset + '/'
