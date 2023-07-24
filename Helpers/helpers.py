@@ -241,12 +241,12 @@ def run_mi_experiments(X, y_true, epsilons, n_times=10, algorithm=None, targets=
 
 
 def generate_piecewise_perturbation(plain_df, epsilon):
-    scaler, plain_df_remapped = reshape_data_to_uniform(plain_df)  # resphape to [-1, 1] (rquired by the algorithm)
+    scaler, plain_df = reshape_data_to_uniform(plain_df)  # resphape to [-1, 1] (rquired by the algorithm)
     pm_encoder = PiecewiseMechanism(epsilon=epsilon, domain=[-1.001, 1.001])
     perturbed_df = plain_df.copy()
     for col in plain_df.columns:
-        perturbed_df[col] = plain_df_remapped[col].apply(pm_encoder.randomise)
-    return pd.DataFrame(scaler.inverse_transform(perturbed_df), columns=plain_df.columns)
+        perturbed_df[col] = plain_df[col].apply(pm_encoder.randomise)
+    return scaler.inverse_transform(perturbed_df)
 
 
 def kDistancePlot(X):
