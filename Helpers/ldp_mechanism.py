@@ -80,26 +80,33 @@ class ldp_mechanism:
         # return spatial.distance.euclidean(point1, point2)  # Euclidean distance as an example
         return np.linalg.norm(np.array(point1) - np.array(point2))
 
+    """
+    x = point in the radius around the non-private data point
+    z = private data point
+    real_data = non-private data
+    radius = the original radius that was used to generate z (so radial distance x - z)
+    epsilon = privacy budget
+    plain_tree = KDTree of the non-private data
+    w_x = the points in the radius around the non-private data point
+    """
     def remap_point(self, x, z, real_data, radius, epsilon, plain_tree, w_x):
         w_x_len = len(w_x)
-        # w_q_sum = sum([len(calculate_popularity(q, real_data, radius)) for q in Q_r(x, z, real_data, radius)])
-        # q_r are the points in the radius around all the points near x (popularity x).
-
         distances_q = []
+        # get all points in the radius around point that was in the radius of the original point x.
         q_r = self.Q_r(x, real_data, radius, plain_tree)
+        # get w(q) which is just the length of q_r
         w_q = len(q_r)
+        # for each q_r we want to know the distance from q to z.
         for q in q_r:
             distance_q_r = self.calculate_distance(q, z)
             distances_q.append(distance_q_r)
-        distances_q_sum = np.sum(distances_q)
-        calculate_q_sum = (w_q * logsumexp(-epsilon * distances_q_sum))
-        #w_q_sum = len(q)
+        distances_q_sum = np.sum(distances_q) # calculate the sum of distances
+        calculate_q_sum = (w_q * logsumexp(-epsilon * distances_q_sum)) # we use the logsumexp trick to avoid underflow (to low values).
+        # always receive positive value and the sum.
         q_r_sum = np.abs(np.sum(calculate_q_sum))
-        # q_calc = (w_q_sum * math.exp(-epsilon * calculate_distance(q, z)))
-        # print(w_q_sum)
+        # calculate the distance between x and z
         distance_xz = self.calculate_distance(x, z)
-        # epsilon_offset = 1e-6  # Small offset to avoid division by zero or infinite results
-
+        # calculate the remapped value
         remapped_value = (w_x_len * math.exp(-epsilon * distance_xz)) / q_r_sum if q_r_sum > 0 else 0
 
         return remapped_value
@@ -130,31 +137,32 @@ class ldp_mechanism:
             non_private_data_point = non_private_df.iloc[index]  # get the corresponding plain data point
             list_sigma = []
             # calculate w_x
-            polularity_x = self.Q_r(non_private_data_point.values, non_private_df.values, private_data_point['r'], tree)
+            c_ball = self.Q_r(non_private_data_point.values, non_private_df.values, private_data_point['r'], tree)
 
-            popularity_x_memory_opt = np.array(polularity_x)
-            if len(polularity_x) > max_iterations:
-                random_indices = np.random.choice(len(polularity_x), size=max_iterations)
-                popularity_x_memory_opt = np.array(polularity_x)[random_indices]
+            popularity_x_memory_opt = np.array(c_ball)
+            if len(c_ball) > max_iterations:
+                # avoid memory issues and just select a random subset of the points in the radius
+                random_indices = np.random.choice(len(c_ball), size=max_iterations)
+                popularity_x_memory_opt = np.array(c_ball)[random_indices]
             # for every point in a radius r around the non-private data point, calculate the new r.
             for x_q in popularity_x_memory_opt:
                 list_sigma.append(self.remap_point(x_q, private_data_point[non_private_df.columns].values,
                                                    non_private_df.values, private_data_point['r'], self.epsilon, tree,
-                                                   w_x=polularity_x))
-
+                                                   w_x=c_ball))
+            # calculate the coefficient
             coefficients = [x_new * non_private_data_point for x_new in list_sigma]
             sum_coefficients = sum(coefficients)
-
+            # get the probabilities for each value
             probabilities = np.array([coeff / sum_coefficients for coeff in
                                       coefficients])  # calculate the probabilities using the coefficients
             if sum_coefficients > 0 if isinstance(sum_coefficients, int) else sum_coefficients[
                 sum_coefficients > 0].all():
+                # calculate the new value for the point based on the average with weighted probabilities.
                 averaged_remap = np.average(popularity_x_memory_opt, axis=0,
-                                            weights=probabilities)  # calculate the new value for the point based on
-                # the average with weightes probabilities.
+                                            weights=probabilities)
+                # assign the new points to the perturbed dataset
                 perturbed_data_copy.loc[index, non_private_df.columns] = averaged_remap if not np.isnan(
                     averaged_remap).any() else private_data_point[non_private_df.columns]
-            # print(np.array(probabilities))
 
         return perturbed_data_copy
 

@@ -92,16 +92,13 @@ def map_models_to_name(model):
     parameters = model.get_params()
     model_name = type(model).__name__
     if model_name == 'KMeans':
-        return 'KMeans(clusters=' + str(parameters['n_clusters']) + ', init=' + parameters['init'] + ')'
+        return 'KMeans(clusters=' + str(parameters['n_clusters']) + ')'
     elif model_name == 'DBSCAN':
-        return 'DBSCAN(samples=' + str(parameters['min_samples']) + ', distance_metric=' + parameters[
-            'metric'] + ', eps=' + str(parameters['eps']) + ')'
+        return 'DBSCAN(samples=' + str(parameters['min_samples']) + ', eps=' + str(parameters['eps']) + ')'
     elif (model_name == 'AffinityPropagation'):
-        return 'AffinityPropagation(damping=' + str(parameters['damping']) + ', distance_metric=' + parameters[
-            'affinity'] + ')'
+        return 'AffinityPropagation(damping=' + str(parameters['damping']) + ')'
     elif (model_name == 'OPTICS'):
-        return 'OPTICS(min_samples=' + str(parameters['min_samples']) + ', distance_metric=' + parameters[
-            'metric'] + ')'
+        return 'OPTICS(min_samples=' + str(parameters['min_samples']) + ')'
     else:
         return 'Not supported'
 

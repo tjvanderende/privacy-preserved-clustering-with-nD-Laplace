@@ -52,7 +52,10 @@ dataset_locations = {
 dataset_algorithm_features = {
     "2d-laplace-truncated": {
         "seeds-dataset": ["area", "perimeter"],
-        "heart-dataset": ['baseline value', 'histogram_min']
+        "heart-dataset": ['baseline value', 'histogram_min'],
+        "circle-dataset": ["x1", "x2"],
+        "line-dataset": ["x1", "x2"],
+        "skewed-dataset": ["x1", "x2"]
     },
     "2d-piecewise": {
         "seeds-dataset": ["area", "perimeter"],
@@ -70,7 +73,10 @@ dataset_algorithm_features = {
     },
     "2d-laplace": {
         "seeds-dataset": ["area", "perimeter"],
-        "heart-dataset": ['baseline value', 'histogram_min']
+        "heart-dataset": ['baseline value', 'histogram_min'],
+        "circle-dataset": ["x1", "x2"],
+        "line-dataset": ["x1", "x2"],
+        "skewed-dataset": ["x1", "x2"]
     },
     "3d-laplace": {
         "seeds-dataset": ["area", "perimeter", "length of kernel"],
@@ -188,7 +194,7 @@ def get_models(dataset: str, algorithm: str):
             # 'AffinityPropagation': AffinityPropagation(damping=0.5, affinity='euclidean'),
             'OPTICS': OPTICS(min_samples=18, metric='euclidean')
         }
-    if dataset == "circle-dataset" or dataset == "line-dataset" or dataset == "skewed-dataset" and algorithm in ["2d-laplace-optimal-truncated", "2d-piecewise"]:
+    if dataset == "circle-dataset" or dataset == "line-dataset" or dataset == "skewed-dataset" and algorithm in ["2d-laplace-optimal-truncated", "2d-piecewise", "2d-laplace", "2d-laplace-truncated"]:
         if dataset == "circle-dataset":
             return {
                 'KMeans': KMeans(n_clusters=5, init='random', algorithm='lloyd'),
@@ -237,13 +243,13 @@ def generate_color_palette(mechanisms):
 
 
 def map_mechanism_to_color(mechanism):
-    if mechanism == 'kd-Laplace/grid/optimal':
+    if mechanism == 'density-kD-Laplace':
         return 'green'
     if mechanism == 'Piecewise':
         return 'orange'
-    if mechanism == 'kd-Laplace/grid':
+    if mechanism == 'grid-kD-Laplace':
         return 'blue'
-    if mechanism == 'kd-Laplace':
+    if mechanism == 'kD-Laplace':
         return 'red'
     else:
         return 'black'
@@ -251,13 +257,13 @@ def map_mechanism_to_color(mechanism):
 
 def map_mechanism_to_display_name(mechanism):
     if mechanism == 'nd-laplace' or mechanism == '2d-laplace' or mechanism == '3d-laplace':
-        return 'kd-Laplace'
+        return 'kD-Laplace'
     if mechanism == 'nd-piecewise' or mechanism == '2d-piecewise' or mechanism == '3d-piecewise':
         return 'Piecewise'
     if mechanism == 'nd-laplace-truncated' or mechanism == '2d-laplace-truncated' or mechanism == '3d-laplace-truncated':
-        return 'kd-Laplace/grid'
+        return 'grid-kD-Laplace'
     if mechanism == 'nd-laplace-optimal-truncated' or mechanism == '2d-laplace-optimal-truncated' or mechanism == '3d-laplace-optimal-truncated':
-        return 'kd-Laplace/grid/optimal'
+        return 'density-kD-Laplace'
     else:
         return mechanism
 
@@ -287,6 +293,7 @@ def plot_comparison(utility_metrics: pd.DataFrame,
     fig, ax = plt.subplots(figsize=(20, 10))
     utility_metrics['algorithm'] = utility_metrics['algorithm'].apply(lambda x: map_mechanism_to_display_name(x))
     algorithms = utility_metrics['algorithm'].unique()
+
     if len(algorithms) > 1:
         bar = sns.barplot(x='epsilon', y=metric, hue="algorithm", data=utility_metrics, ax=ax,
                           palette=generate_color_palette(algorithms))
@@ -415,13 +422,17 @@ def run_utility_experiments(plain_dataset_path: str, algorithm: str, dataset: st
         report.to_csv(get_export_path(dataset, algorithm, prefix='results') + 'utility_scores.csv', index=False)
 
     # --- PLOT RESULTS ---
-    utility = UtilityPlotter.UtilityPlotter(plain_dataset_path, get_models(dataset, algorithm), columns=features)
+    """utility = UtilityPlotter.UtilityPlotter(plain_dataset_path, get_models(dataset, algorithm), columns=features)
     utility.plot_external_validation(report, get_export_path(dataset, algorithm, prefix='results'), save=True)
     utility_internal = UtilityPlotter.UtilityPlotter(plain_dataset_path, get_models(dataset, algorithm),
                                                      columns=features)
-    utility_internal.plot_internal_validation(report, get_export_path(dataset, algorithm, prefix='results'), save=True)
-
-
+    utility_internal.plot_internal_validation(report, get_export_path(dataset, algorithm, prefix='results'), save=True)"""
+    utility = UtilityPlotter.UtilityPlotter(plain_dataset_path, get_models(dataset, algorithm),
+                                                     columns=features)
+    utility.plot_all_metrics(report, get_export_path(dataset, algorithm, prefix='results'), save=True)
+    utility_internal = UtilityPlotter.UtilityPlotter(plain_dataset_path, get_models(dataset, algorithm),
+                                                        columns=features)
+    utility_internal.plot_results_for_mechanism_comparison(report, get_export_path(dataset, algorithm, prefix='results'), save=True)
 @app.command()
 def run_comparison_experiment(research_question: str, dataset: str):
     print(f'Running {research_question}')
@@ -430,7 +441,7 @@ def run_comparison_experiment(research_question: str, dataset: str):
     ## TODO: Should be better integrated with the other experiments
     if research_question == 'RQ3':
         algorithm = '2d-laplace-optimal-truncated'
-        algorithms = ['2d-laplace-optimal-truncated', '2d-piecewise']
+        algorithms = research_question_1_algorithms
 
     datasets = datasets_rq3_shape_research if research_question == 'RQ3' else supported_datasets
     print('Algorithms', algorithms)
@@ -448,6 +459,7 @@ def run_comparison_experiment(research_question: str, dataset: str):
             ultility_metrics = helpers.load_dataset(
                 get_export_path(dataset, algorithm, prefix='results') + '/utility_scores.csv')
 
+            print('Loaded utility metrics', ultility_metrics.head(), model_name)
             ultility_metrics = ultility_metrics[ultility_metrics['type'] == model_name]
             ultility_metrics['algorithm'] = algorithm
 
@@ -508,6 +520,7 @@ def run_comparison_experiment(research_question: str, dataset: str):
                 print('baseline value', baseline_value)
             metric_name = metric_names[metric]
             print('comparison_dp', comparison_dp.head(), algorithm, metric_name, metric)
+
             plot_comparison(comparison_dp, dataset, algorithm, metric=metric, metric_name=metric_name, research_question=research_question,
                             baseline_value=baseline_value)
 
@@ -519,7 +532,7 @@ def run_comparison_experiment(research_question: str, dataset: str):
 def run_privacy_experiments(plain_dataset_path: str, algorithm: str, dataset: str):
     print(f"Running privacy experiments on {plain_dataset_path} with {algorithm}")
     sanity_check(algorithm, dataset)
-
+    run_n_times = 10 # how many times to run each experiment
     plain_df = helpers.load_dataset(plain_dataset_path)
     y_target = plain_df['class']
     X_features = plain_df[dataset_algorithm_features[algorithm][dataset]]
@@ -549,7 +562,7 @@ def run_privacy_experiments(plain_dataset_path: str, algorithm: str, dataset: st
     else:
         # --- RUN EXPERIMENTS ---
         privacy_df = helpers.run_mi_experiments(X_features.values, y_target.values, epsilons,
-                                                algorithm=helpers.get_mechanism(algorithm), n_times=50,
+                                                algorithm=helpers.get_mechanism(algorithm), n_times=run_n_times,
                                                 columns=dataset_algorithm_features[algorithm][dataset],
                                                 targets=targets);
         privacy_df.to_csv(get_export_path(dataset, algorithm, prefix='results') + 'privacy_scores.csv', index=False)
@@ -566,8 +579,8 @@ def run_experiments_rq3():
         plain_dataset_with_target = plain_dataset.copy()
         plain_dataset.drop(columns=['class'], inplace=True)
         epsilons = helpers.get_experiment_epsilons()
-        n_times_per_epsilon_for_mi = 50
-        algorithms_to_consider = ['nd-laplace-optimal-truncated', 'nd-piecewise']
+        n_times_per_epsilon_for_mi = 10
+        algorithms_to_consider = ['nd-laplace-optimal-truncated', 'nd-piecewise', 'nd-laplace', 'nd-laplace-truncated']
         """
         Run RQ3 things
         """
@@ -584,9 +597,7 @@ def run_experiments_rq3():
                     epsilon,
                     [k_means_model],
                     research_question_3_algorithms,
-                    dataset=dataset,
-                    import_path=plain_dataset_location,
-                    perturbed_path=f'./data/',
+                    dataset=dataset
                 )
                 create_directory_if_nonexistent(f'./results/RQ3/{dataset}/')
                 utility_dimensions.to_csv(utility_dimensional_loc, index=False)
@@ -596,7 +607,20 @@ def run_experiments_rq3():
 
         if os.path.isfile(security_dimensional_loc_csv):
             print(f'Use existing security dimensional dataset for multiple epsilons')
+            # check if any is missing
             security_dimensions = helpers.load_dataset(security_dimensional_loc_csv)
+            algorithms_considered = security_dimensions['mechanism'].unique()
+            for consider_algorithm in algorithms_to_consider:
+                if consider_algorithm not in algorithms_considered:
+                    print(f'Algorithm {consider_algorithm} not in security dimensional dataset')
+                    security_dimension_for_missing_algorithm = rq3_helpers.run_security_mi_for_dimensions_and_algorithm(
+                        plain_dataset_with_target,
+                        [consider_algorithm],
+                        epsilons,
+                        n_times=n_times_per_epsilon_for_mi,
+                        target_column='class'
+                    )
+                    security_dimensions = pd.concat([security_dimensions, security_dimension_for_missing_algorithm])
         else:
             security_dimensions = rq3_helpers.run_security_mi_for_dimensions_and_algorithm(
                 plain_dataset_with_target,
@@ -605,7 +629,8 @@ def run_experiments_rq3():
                 n_times=n_times_per_epsilon_for_mi,
                 target_column='class'
             )
-            security_dimensions.to_csv(security_dimensional_loc_csv, index=False)
+
+        security_dimensions.to_csv(security_dimensional_loc_csv, index=False)
 
         ## PLOT DIMENSIONALITY (Security) ##
         # for epsilon in epsilons:
