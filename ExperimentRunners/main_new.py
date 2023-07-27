@@ -23,6 +23,10 @@ from ExperimentRunners.main import app
 from Helpers import helpers, rq3_helpers
 from Helpers.UtilityPlotter import UtilityPlotter
 
+font_sizes = {
+    'normal': 16,
+    'title': 20,
+}
 mechanisms = ['kd-Laplace', 'piecewise']
 mechanism_mapper = {
     'kd-Laplace': {
@@ -90,12 +94,12 @@ model_mapper = {
         3: {
             'KMeans': KMeans(n_clusters=4, init='random', algorithm='lloyd'),
              #'AffinityPropagation': AffinityPropagation(damping=0.5, affinity='euclidean'),
-            'OPTICS': OPTICS(min_samples=4, metric='euclidean')
+            'OPTICS': OPTICS(min_samples=6, metric='euclidean')
         },
         'nd': {
             'KMeans': KMeans(n_clusters=4, init='random', algorithm='lloyd'),
              #'AffinityPropagation': AffinityPropagation(damping=0.5, affinity='euclidean'),
-            'OPTICS': OPTICS(min_samples=4, metric='euclidean')
+            'OPTICS': OPTICS(min_samples=6, metric='euclidean')
         }
     }, 'line-dataset': {
         2: {
@@ -106,12 +110,12 @@ model_mapper = {
         3: {
             'KMeans': KMeans(n_clusters=4, init='random', algorithm='lloyd'),
                 #'AffinityPropagation': AffinityPropagation(damping=0.5, affinity='euclidean'),
-            'OPTICS': OPTICS(min_samples=4, metric='euclidean')
+            'OPTICS': OPTICS(min_samples=6, metric='euclidean')
         },
         'nd': {
             'KMeans': KMeans(n_clusters=4, init='random', algorithm='lloyd'),
                 #'AffinityPropagation': AffinityPropagation(damping=0.5, affinity='euclidean'),
-            'OPTICS': OPTICS(min_samples=4, metric='euclidean')
+            'OPTICS': OPTICS(min_samples=6, metric='euclidean')
         }
     },
     'skewed-dataset': {
@@ -123,12 +127,12 @@ model_mapper = {
         3: {
             'KMeans': KMeans(n_clusters=4, init='random', algorithm='lloyd'),
                 #'AffinityPropagation': AffinityPropagation(damping=0.5, affinity='euclidean'),
-            'OPTICS': OPTICS(min_samples=4, metric='euclidean')
+            'OPTICS': OPTICS(min_samples=6, metric='euclidean')
         },
         'nd': {
             'KMeans': KMeans(n_clusters=4, init='random', algorithm='lloyd'),
                 #'AffinityPropagation': AffinityPropagation(damping=0.5, affinity='euclidean'),
-            'OPTICS': OPTICS(min_samples=4, metric='euclidean')
+            'OPTICS': OPTICS(min_samples=6, metric='euclidean')
         }
     }
 
@@ -136,20 +140,43 @@ model_mapper = {
 datasets_mapper = {
     'heart-dataset': '../data/heart-dataset/heart_numerical.csv',
     'seeds-dataset': '../data/seeds-dataset/rq2-nd.csv',
-    'circle-dataset': '../RQ3/data/circle_1000.csv',
-    'line-dataset': '../RQ3/data/line_1000.csv',
-    'skewed-dataset': '../RQ3/data/skewed_1000.csv'
+    'circle-dataset': '../RQ3/data/circle_1000_3d.csv',
+    'line-dataset': '../RQ3/data/line_1000_3d.csv',
+    'skewed-dataset': '../RQ3/data/skewed_1000_3d_.csv'
 }
 supported_datasets = ['heart', 'seeds', 'circle-dataset', 'line-dataset', 'skewed-dataset']
 variants = ['kd-Laplace', 'grid-kd-Laplace', 'density-kd-Laplace', 'piecewise']
 
 app = typer.Typer()
 
+def plot_heatmap_legend(save_path, heatmap):
+    fig, ax = plt.subplots(figsize=(1, 6))
+    fig.subplots_adjust(right=0.5)
+    cbar = plt.colorbar(heatmap, cax=ax),
+    cbar[0].ax.tick_params(labelsize=font_sizes['normal'])
+    plt.tight_layout()
+    plt.savefig(save_path)
+    plt.clf()
 
-def plot_heatmap(df, metric, save_path=None, title=None):
+def find_heatmap_min_max(metric):
+    if metric == 'ami' or metric == 'ari':
+        return 0, 1
+    elif metric == 'ch':
+        return 0, 2000
+    elif metric == 'sc':
+        return -1, 1
+    elif metric == 'shokri_mi_adv':
+        return 0, 0.7
+    elif metric == 'tpr':
+        return 0, 1
+
+def plot_heatmap(df, metric, save_path=None, title=None, provided_ax=None, max_value=None, min_value=None, square=True):
     fig, ax = plt.subplots(figsize=(15, 8))
+    ax = ax if provided_ax is None else provided_ax
     scores_df = df.copy()
     prepared_df = scores_df.copy()
+    heatmap_min = 0
+
     if (metric == 'tpr'):
         prepared_df['tpr'] = prepared_df['tpr'].apply(
             lambda x: float(x.strip('[]').split()[1]) if type(x) is not float else x)
@@ -157,14 +184,22 @@ def plot_heatmap(df, metric, save_path=None, title=None):
     prepared_df_mean = prepared_df.groupby(['epsilon', 'dimensions'])[metric].mean().reset_index()
     prepared_df_pivot = prepared_df_mean.pivot(index='dimensions', columns='epsilon', values=metric)
 
-    sns.heatmap(prepared_df_pivot, annot=True, robust=True, fmt=".2f", linewidths=.5, ax=ax, cmap='Greens')
+    min_val, max_val = find_heatmap_min_max(metric)
+
+    # TODO: Fix min/max for ch
+    heatmap = sns.heatmap(prepared_df_pivot, annot=True, robust=True, square=square, annot_kws={'fontsize':16, 'fontweight':'bold'}, vmin=min_val, vmax=max_val, fmt=".2f", linewidths=.5, ax=ax, cbar=False, cmap='Greens')
     # ax.set_title(f"TPR Scores for dataset: {dataset} with epsilon and dimensions")
-    ax.set_title(title)
-    ax.set_ylabel('Dimensions')
-    ax.set_xlabel('Privacy budgets($\epsilon$)')
+    ax.set_title(title, fontsize=font_sizes['title'])
+    ax.set_ylabel('Dimensions', fontsize=font_sizes['title'])
+    ax.set_xlabel('Privacy budgets($\epsilon$)', fontsize=font_sizes['title'])
+    heatmap.tick_params(labelsize=font_sizes['normal'])
+
     plt.tight_layout()
     if save_path is not None:
-        plt.savefig(save_path, dpi=300)
+        cbar = heatmap.get_children()[0]
+        plot_heatmap_legend(f'{save_path}/heatmap_legend_{metric}.png', cbar)
+        # TODO: Not working?
+        fig.savefig(f'{save_path}/{metric}.png', dpi=300, bbox_inches='tight')
         plt.clf()
     else:
         plt.show()
@@ -191,7 +226,7 @@ def get_color_for_cluster_algorithm(name: str):
 def map_mechanism_to_color(mechanism):
     if mechanism == 'density-kd-Laplace':
         return 'green'
-    if mechanism == 'Piecewise':
+    if mechanism == 'piecewise':
         return 'orange'
     if mechanism == 'grid-kd-Laplace':
         return 'blue'
@@ -238,7 +273,6 @@ def plot_results_for_mechanism_comparison(utility_metrics, plain_df, cluster_mod
     ax_sc =  plot_cluster_utility(utility_metrics, 'sc', helpers.get_experiment_epsilons(), title='', provided_ax=ax2,
                                 metric=get_full_metric_name('sc'), cluster_column_name='clustering_algorithm', save=False)
 
-
     baseline = calculate_baseline(cluster_models, plain_df)
     ax_sc.axhline(y=baseline['avg_sc'], linestyle='--', label='non-private KMeans (baseline)')
 
@@ -246,8 +280,8 @@ def plot_results_for_mechanism_comparison(utility_metrics, plain_df, cluster_mod
     ax_sc.get_legend().remove()
     ax1.grid(linestyle='dotted')
     ax2.grid(linestyle='dotted')
-    ax_ami.set_title('External validation of the privacy mechanisms using AMI metric')
-    ax_sc.set_title('Internal validation of the privacy mechanisms using SC metric')
+    #ax_ami.set_title('External validation of the privacy mechanisms using AMI metric', fontsize=font_sizes['title'])
+   # ax_sc.set_title('Internal validation of the privacy mechanisms using SC metric', fontsize=font_sizes['title'])
     ax_ami.set_xticks(helpers.get_experiment_epsilons())
 
     plt.tight_layout()
@@ -288,9 +322,10 @@ def plot_cluster_utility(result, metric_name, epsilons, cluster_column_name='typ
                       hue=cluster_column_name,
                       palette=generate_color_palette_clustering(types), markers=True, legend=True)
     ax.set_xticks(epsilons, labels=epsilons)
-    ax.set_title(title)
-    ax.set_xlabel('Privacy budget ($\epsilon$)')
-    ax.set_ylabel(metric)
+    ax.set_title(title, fontsize=font_sizes['title'])
+    ax.set_xlabel('Privacy budget ($\epsilon$)', fontsize=font_sizes['normal'])
+    ax.set_ylabel(metric, fontsize=font_sizes['normal'])
+    ax.tick_params(labelsize=font_sizes['normal'])
 
     if save:
         file_name = metric_name if export_file_name is None else export_file_name
@@ -314,6 +349,7 @@ def plot_comparison(utility_metrics: pd.DataFrame,
                     metric_name=None,
                     mechanism_comparison=None,
                     export_path='../export/results/',
+                    title='',
                     research_question='RQ1'):
     sns.set(style="whitegrid", color_codes=True)
     fig, ax = plt.subplots(figsize=(20, 10))
@@ -339,13 +375,25 @@ def plot_comparison(utility_metrics: pd.DataFrame,
     if fpr_baseline is not None:
         ax.axhline(y=fpr_baseline, linestyle='solid', label=f'non-private FPR (baseline: {fpr_baseline:.2f})',
                    color='green')
-    ax.set_title(
-        f"Comparison of {metric} for {dataset} using K-Means. Algorithm: {algorithm}")
+    ax.set_title(title)
     plot_bar_colorblindness(bar)
-    ax.set_xlabel('Privacy Budget (epsilon)')
-    ax.set_ylabel(metric if metric_name is None else metric_name)
-    ax.legend(title='Mechanism')
-    fig.savefig(export_path)
+    ax.set_xlabel('Privacy Budget (epsilon)', fontsize=font_sizes['title'])
+    ax.set_ylabel(metric if metric_name is None else metric_name, fontsize=font_sizes['title'])
+    bar.tick_params(labelsize=font_sizes['normal'])
+    bar.get_legend().remove()
+    # create a second figure for the legend
+    fig_leg = plt.figure(figsize=(3, 2))
+    ax_leg = fig_leg.add_subplot(111)
+
+    # draw legend from bar to the second figure
+    ax_leg.legend(*ax.get_legend_handles_labels(), loc='center')
+
+    # hide the axes frame and the x/y labels
+    ax_leg.axis('off')
+
+    fig_leg.savefig(f'{export_path}/{metric}_bar_comparison_legend.png', bbox_inches='tight')
+    fig.savefig(f'{export_path}/{metric}_{dataset}_comparison.png')
+
     plt.clf()
 
 def run_mi_experiments(X, X_perturbed, epsilon, n_times=10, columns=['X', 'Y'], y_true_target=None, cluster_algorithm=None):
@@ -448,7 +496,7 @@ def run_mi_for_dimensions(plain_df, full_perturbation_df, dataset, epsilons: lis
 def run_for_dimensions(plain_df, full_perturbation_df, mechanism, epsilon, dataset, n_times=10, model_name=None):
     dataframe = {'algorithm': [], 'clustering_algorithm': [], 'dimensions': [], 'ari': [], 'ami': [], 'ch': [],
                  'sc': [], 'mechanism': [], 'epsilon': []}
-    max_columns = plain_df.shape[1]
+    max_columns = plain_df.drop(columns=['class']).shape[1]
     for col in range(2, max_columns + 1):
         print('Adding one column each time...')
         data = plain_df.iloc[:, 0:col]
@@ -471,9 +519,8 @@ def run_for_dimensions(plain_df, full_perturbation_df, mechanism, epsilon, datas
                 (full_perturbation_df['dimension'] == col) & (full_perturbation_df['epsilon'] == epsilon) & (
                             full_perturbation_df['mechanism'] == mechanism)]
             for i in range(n_times):
-                plain_df = data[columns]
                 perturbed_df = perturbed_df[columns]
-                plain_df_scaled = StandardScaler().fit_transform(plain_df)
+                plain_df_scaled = StandardScaler().fit_transform(data)
                 perturbed_df_scaled = StandardScaler().fit_transform(perturbed_df)
                 plain_fitted_df = cluster_model.fit(plain_df_scaled)
                 perturbed_fitted_df = clone(cluster_model).fit(perturbed_df_scaled)
@@ -510,7 +557,7 @@ def generate_input_data(dataset: str):
     dataset_location = datasets_mapper[dataset]
     # TODO: Properly order this file
     plain_df = helpers.load_dataset(dataset_location)
-    max_columns = plain_df.shape[1]
+    max_columns = plain_df.drop(columns=['class']).shape[1]
     full_perturbation = pd.DataFrame()
     for variant in variants:
         input_path = f'./data/kd-laplace/{variant}/{dataset}'
@@ -565,6 +612,9 @@ def generate_security_experiments(dataset: str):
     for variant in variants:
         security_df = pd.DataFrame()
         variant_perturbation_df_loc = f'./data/kd-laplace/{variant}/{dataset}/full_perturbation.csv'
+        if(os.path.exists(f'./data/kd-laplace/{variant}/{dataset}/security.csv')):
+            print('Security already exists, skipping...')
+            continue
         variant_perturbation_df = pd.read_csv(variant_perturbation_df_loc)
         dataframe = run_mi_for_dimensions(plain_df, variant_perturbation_df, dataset, epsilons, n_times=10)
         security_df = pd.concat([security_df, dataframe], ignore_index=True)
@@ -585,7 +635,7 @@ def generate_thesis_reports(dataset: str):
 
     plain_df = helpers.load_dataset(datasets_mapper[dataset])
     for num_dimensions in dimensions:
-        dim = 2 if num_dimensions == 2 else 3 if num_dimensions == 3 else plain_df.shape[1]
+        dim = 2 if num_dimensions == 2 else 3 if num_dimensions == 3 else plain_df.drop(columns=['class']).shape[1]
         for variant in variants:
             save_path = f'{thesis_path}/kd-laplace/{variant}/{dataset}'
             save_path_local = f'./data/kd-laplace/{variant}/{dataset}'
@@ -593,12 +643,16 @@ def generate_thesis_reports(dataset: str):
             dataset_loc = f'./data/kd-laplace/{variant}/{dataset}/utility.csv'
             dataset_df = pd.read_csv(dataset_loc)
             dataset_df_kmeans = dataset_df.loc[dataset_df['clustering_algorithm'].str.contains('KMeans')]
+            security_df_loc = f'{save_path_local}/security.csv'
+            security_df = pd.read_csv(security_df_loc)
+            security_df['dimensions'] = security_df['dimension']
             # dataset_df = dataset_df.loc[column_names]
+            square = True if dataset in ['circle-dataset', 'line-dataset', 'skewed-dataset'] else False
             for utility_metric in utility_metrics:
-                plot_heatmap(dataset_df_kmeans, utility_metric, save_path=f'{save_path_local}/{utility_metric}.png',
-                             title=f'{titles[utility_metric]} for {variant} on {dataset}')
-                plot_heatmap(dataset_df_kmeans, utility_metric, save_path=f'{save_path}/{utility_metric}.png',
-                             title=f'{titles[utility_metric]} for {variant} on {dataset}')
+                plot_heatmap(dataset_df_kmeans, utility_metric, save_path=f'{save_path_local}/',
+                             title='', square=square)
+                plot_heatmap(dataset_df_kmeans, utility_metric, save_path=f'{save_path}/',
+                             title='', square=square)
 
                 ## Compare cluster utility
                 filter_dimensions = dataset_df['dimensions'] == dim
@@ -609,18 +663,17 @@ def generate_thesis_reports(dataset: str):
                 cluster_models = model_mapper[dataset]['nd' if dim > 3 else dim]
                 plot_cluster_utility(dataset_cluster_utility, utility_metric, epsilons=helpers.get_experiment_epsilons(),
                                      cluster_column_name='clustering_algorithm', metric=get_full_metric_name(utility_metric),
-                                     title=f'{titles[utility_metric]} for {variant} on {dataset}',
+                                     title='',
                                      export_file_name=cluster_utility_export_filename,
                                      export_path=cluster_utility_export_path)
 
                 plot_results_for_mechanism_comparison(dataset_cluster_utility, plain_df.iloc[:, 0:dim], cluster_models, cluster_utility_export_path + '/', save=True, dimension=dim)
 
+            #max_advantage = security_df['shokri_mi_adv'].max()
+            #min_advantage = security_df['shokri_mi_adv'].min()
             ## Compare security
-            security_df_loc = f'{save_path_local}/security.csv'
-            security_df = pd.read_csv(security_df_loc)
-            security_df['dimensions'] = security_df['dimension']
-            plot_heatmap(security_df, 'shokri_mi_adv', save_path=f'{save_path}/shokri_mi_adv.png', title=f'Adversary advantage for membership inference attack on {dataset}')
-            plot_heatmap(security_df, 'tpr', save_path=f'{save_path}/tpr.png', title=f'True Positive Rate (TPR) for membership inference attack on {dataset}')
+            plot_heatmap(security_df, 'shokri_mi_adv', save_path=f'{save_path}/', title=f'', square=square)
+            plot_heatmap(security_df, 'tpr', save_path=f'{save_path}/', title=f'', square=square)
 
     # Compare all mechanisms
     all_utility_df = pd.DataFrame()
@@ -634,13 +687,16 @@ def generate_thesis_reports(dataset: str):
         variant_security_df['algorithm'] = variant
         all_security_df = pd.concat([all_security_df, variant_security_df], ignore_index=True)
     for utility_metric in utility_metrics:
-        plot_comparison(all_utility_df, dataset, metric=utility_metric, export_path=f'{export_path}/{utility_metric}_{dataset}_comparison.png',)
+        plot_comparison(all_utility_df, dataset, metric=utility_metric, export_path=f'{export_path}',)
 
     cluster_algorithm = model_mapper[dataset]['nd' if plain_df.shape[1] > 3 else plain_df.shape[1]]
     y_true = plain_df['class'] if 'class' in plain_df else None
     baseline_tpr, baseline_fpt = find_baseline_mi_values(plain_df, y_target=y_true, n_times=10, cluster_algorithm=cluster_algorithm['KMeans'])
-    plot_comparison(all_security_df, dataset, metric='shokri_mi_adv', metric_name='Adversary advantage', export_path=f'{export_path}/shokri_mi_adv_{dataset}_comparison.png')
-    plot_comparison(all_security_df, dataset, metric='tpr', tpr_baseline=baseline_tpr, metric_name='True Positive Rate (TPR)', export_path=f'{export_path}/tpr_{dataset}_comparison.png')
+    plot_comparison(all_security_df, dataset, metric='shokri_mi_adv', metric_name='Adversary advantage', export_path=f'{export_path}/')
+    plot_comparison(all_security_df, dataset, metric='tpr', tpr_baseline=baseline_tpr, metric_name='True Positive Rate (TPR)', export_path=f'{export_path}/')
+
+
+
 
 if __name__ == "__main__":
     app()
