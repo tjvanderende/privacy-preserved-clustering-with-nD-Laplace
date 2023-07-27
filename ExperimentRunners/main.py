@@ -1,3 +1,5 @@
+from typing import Literal
+
 from matplotlib import pyplot as plt
 import numpy as np
 import pandas as pd
@@ -237,19 +239,17 @@ def plot_bar_colorblindness(bar):
         for bar in bars:
             bar.set_hatch(hatch)
 
-
 def generate_color_palette(mechanisms):
     return {mechanism: map_mechanism_to_color(mechanism) for mechanism in mechanisms}
 
-
 def map_mechanism_to_color(mechanism):
-    if mechanism == 'density-kD-Laplace':
+    if mechanism == 'density-kd-Laplace':
         return 'green'
     if mechanism == 'Piecewise':
         return 'orange'
-    if mechanism == 'grid-kD-Laplace':
+    if mechanism == 'grid-kd-Laplace':
         return 'blue'
-    if mechanism == 'kD-Laplace':
+    if mechanism == 'kd-Laplace':
         return 'red'
     else:
         return 'black'
@@ -257,13 +257,13 @@ def map_mechanism_to_color(mechanism):
 
 def map_mechanism_to_display_name(mechanism):
     if mechanism == 'nd-laplace' or mechanism == '2d-laplace' or mechanism == '3d-laplace':
-        return 'kD-Laplace'
+        return 'kd-Laplace'
     if mechanism == 'nd-piecewise' or mechanism == '2d-piecewise' or mechanism == '3d-piecewise':
         return 'Piecewise'
     if mechanism == 'nd-laplace-truncated' or mechanism == '2d-laplace-truncated' or mechanism == '3d-laplace-truncated':
-        return 'grid-kD-Laplace'
+        return 'grid-kd-Laplace'
     if mechanism == 'nd-laplace-optimal-truncated' or mechanism == '2d-laplace-optimal-truncated' or mechanism == '3d-laplace-optimal-truncated':
-        return 'density-kD-Laplace'
+        return 'density-kd-Laplace'
     else:
         return mechanism
 
@@ -433,6 +433,7 @@ def run_utility_experiments(plain_dataset_path: str, algorithm: str, dataset: st
     utility_internal = UtilityPlotter.UtilityPlotter(plain_dataset_path, get_models(dataset, algorithm),
                                                         columns=features)
     utility_internal.plot_results_for_mechanism_comparison(report, get_export_path(dataset, algorithm, prefix='results'), save=True)
+
 @app.command()
 def run_comparison_experiment(research_question: str, dataset: str):
     print(f'Running {research_question}')

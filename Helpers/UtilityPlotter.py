@@ -46,12 +46,12 @@ class UtilityPlotter:
     def generate_color_palette(self, algorithms):
         return {algorithm: self.get_color_for_cluster_algorithm(algorithm) for algorithm in algorithms}
 
-    def add_utility_plot(self, result, metric_name, epsilons, ax = None, metric='Adjusted Mutual Information (AMI)',
+    def add_utility_plot(self, result, metric_name, epsilons, ax = None, cluster_column_name='type', metric='Adjusted Mutual Information (AMI)',
                          title='External validation (AMI & ARI): Difference between privately trained cluster algorithms versus \n non-private trained cluster algorithms',
                          graph_index=0):
-        types = result['type'].unique()
+        types = result[cluster_column_name].unique()
         ax = ax if ax is not None else self.axs[graph_index]
-        ax = sns.lineplot(x='epsilon', y=metric_name, data=result, ax=ax, style='type', hue='type',
+        ax = sns.lineplot(x='epsilon', y=metric_name, data=result, ax=ax, style=cluster_column_name, hue=cluster_column_name,
                           palette=self.generate_color_palette(types), markers=True, legend=True)
         ax.set_xticks(epsilons, labels=epsilons)
         ax.set_title(title)
@@ -84,19 +84,22 @@ class UtilityPlotter:
             plt.clf()
 
     def plot_all_metrics(self, utility_metrics, export_path='../export/results/', save=True,
-                                              metrics=['ari', 'sc', 'ami', 'ch']):
+                                              metrics=['ari', 'sc', 'ami', 'ch'], cluster_column_name='type', export_file_name=None):
         for i in range(len(metrics)):
             fig, ax = plt.subplots(1, sharex=True, sharey=self.sharey, figsize=(12, 10))
             ax = self.add_utility_plot(utility_metrics, metrics[i], self.plotter_data.get_epsilons(), ax=ax, graph_index=0,
-                                       metric=self.get_full_metric_name(metrics[i]), title='')
-            if metrics[i] == 'ch' or metrics[i] == 'sc':
-                self.add_baseline(self._get_baseline(record_type=f'avg_{metrics[i]}'), 0)
+                                       metric=self.get_full_metric_name(metrics[i]), title='', cluster_column_name=cluster_column_name)
+            #if metrics[i] == 'ch' or metrics[i] == 'sc':
+            #    self.add_baseline(self._get_baseline(record_type=f'avg_{metrics[i]}'), 0)
             self.add_legend(ax=ax)
             ax.get_legend().remove()
 
             if save:
-                fig.savefig(f'{export_path}/{metrics[i]}.png')
+                file_name = metrics[i] if export_file_name is None else export_file_name
+                fig.savefig(f'{export_path}/{file_name}.png')
                 plt.clf()
+            else:
+                plt.show()
 
     def plot_results_for_mechanism_comparison(self, utility_metrics, export_path='../export/results/', save=True):
         fig, (ax1, ax2) = plt.subplots(2,1, figsize=(10, 8), linewidth=2, constrained_layout=True)
