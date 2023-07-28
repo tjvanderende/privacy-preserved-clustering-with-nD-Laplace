@@ -289,7 +289,7 @@ def calculate_baseline(models, plain_df, n_times=10):
 
 def plot_results_for_mechanism_comparison(utility_metrics, plain_df, cluster_models, export_path='../export/results/', save=True, dimension=2):
     fig, (ax1, ax2) = plt.subplots(2,1, figsize=(10, 8), linewidth=2, constrained_layout=True)
-    figLegend = pylab.figure(figsize=(1.5, 1.3))
+
     ax_ami = plot_cluster_utility(utility_metrics, 'ami', helpers.get_experiment_epsilons(), title='', provided_ax=ax1,
                                 metric=get_full_metric_name('ami'), cluster_column_name='clustering_algorithm', save=False)
     ax_sc =  plot_cluster_utility(utility_metrics, 'sc', helpers.get_experiment_epsilons(), title='', provided_ax=ax2,
@@ -302,17 +302,18 @@ def plot_results_for_mechanism_comparison(utility_metrics, plain_df, cluster_mod
     ax_sc.get_legend().remove()
     ax1.grid(linestyle='dotted')
     ax2.grid(linestyle='dotted')
-    #ax_ami.set_title('External validation of the privacy mechanisms using AMI metric', fontsize=font_sizes['title'])
-   # ax_sc.set_title('Internal validation of the privacy mechanisms using SC metric', fontsize=font_sizes['title'])
     ax_ami.set_xticks(helpers.get_experiment_epsilons())
 
     plt.tight_layout()
     if save:
-        pylab.figlegend(*ax2.get_legend_handles_labels(), loc='upper left')
-        # TODO: Not working?
-        figLegend.savefig(export_path + 'legend.png', dpi=300, bbox_inches='tight')
+        # Create new figure and add legend
+        figLegend = plt.figure(figsize=(1.5, 1.3))
+        plt.figlegend(*ax2.get_legend_handles_labels(), loc='upper left')
+
+        figLegend.savefig(f'{export_path}/legend_{dimension}.png', dpi=300, bbox_inches='tight')
         fig.savefig(f'{export_path}/ami-and-sc_{dimension}_dimensions.png', dpi=300, bbox_inches='tight')
         plt.clf()
+
 
 def find_baseline_mi_values(plain_df: pd.DataFrame, y_target=None, cluster_algorithm=None, n_times=10):
     plain_df_copy = plain_df.copy()
