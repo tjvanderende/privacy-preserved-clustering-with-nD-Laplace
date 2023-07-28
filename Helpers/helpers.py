@@ -99,6 +99,8 @@ def map_models_to_name(model):
         return 'AffinityPropagation(damping=' + str(parameters['damping']) + ')'
     elif (model_name == 'OPTICS'):
         return 'OPTICS(min_samples=' + str(parameters['min_samples']) + ')'
+    elif (model_name == 'AgglomerativeClustering'):
+        return f'AgglomerativeClustering(clusters='+str(parameters['n_clusters'])+')'
     else:
         return 'Not supported'
 
@@ -378,12 +380,13 @@ def compute_distances_between_two_datasets(df1, df2):
     return distances
 
 
-def compute_euclidean_distances_between_two_datasets_per_epsilon(plain_df, epsilons, algorithm, dataset):
+def compute_euclidean_distances_between_two_datasets_per_epsilon(plain_df, perturbed, epsilons, algorithm, dataset, columns):
     distances = {'epsilon': [], 'distance': []}
     for epsilon in epsilons:
-        perturbed_df_3d = load_dataset(f'../ExperimentRunners/data/{algorithm}/{dataset}/perturbed_{epsilon}.csv')
+        perturbed_for_epsilon = perturbed[perturbed['epsilon'] == epsilon]
+        #perturbed_df_3d = load_dataset(f'../ExperimentRunners/data/{algorithm}/{dataset}/perturbed_{epsilon}.csv')
         distances['epsilon'].append(epsilon)
-        distances['distance'].append(np.mean(compute_distances_between_two_datasets(plain_df, perturbed_df_3d)))
+        distances['distance'].append(np.mean(compute_distances_between_two_datasets(plain_df, perturbed_for_epsilon[columns])))
     df = pd.DataFrame(distances)
     df['algorithm'] = algorithm
     df['dataset'] = dataset

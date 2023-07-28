@@ -11,7 +11,7 @@ from art.utils import to_categorical
 from matplotlib import pyplot as plt
 from matplotlib.colors import ListedColormap, LinearSegmentedColormap
 from sklearn import clone
-from sklearn.cluster import KMeans, AffinityPropagation, OPTICS
+from sklearn.cluster import KMeans, AffinityPropagation, OPTICS, AgglomerativeClustering
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import adjusted_mutual_info_score, adjusted_rand_score, calinski_harabasz_score, silhouette_score, \
     roc_curve
@@ -55,83 +55,98 @@ model_mapper = {
         2: {
             'KMeans': KMeans(n_clusters=4, init='random', algorithm='lloyd'),
             #'AffinityPropagation': AffinityPropagation(damping=0.5, affinity='euclidean'),
+            'AgglomerativeClustering': AgglomerativeClustering(n_clusters=2, metric='euclidean'),
             'OPTICS': OPTICS(min_samples=4, metric='euclidean')
         },
         3: {
             'KMeans': KMeans(n_clusters=4, init='random', algorithm='lloyd'),
             # 'AffinityPropagation': AffinityPropagation(damping=0.5, affinity='euclidean'),
+            'AgglomerativeClustering': AgglomerativeClustering(n_clusters=2, metric='euclidean'),
             'OPTICS': OPTICS(min_samples=6, metric='euclidean')
         },
         'nd': {
             'KMeans': KMeans(n_clusters=4, init='random', algorithm='lloyd'),
             # 'AffinityPropagation': AffinityPropagation(damping=0.5, affinity='euclidean'),
+            'AgglomerativeClustering': AgglomerativeClustering(n_clusters=3, metric='euclidean'),
             'OPTICS': OPTICS(min_samples=18, metric='euclidean')
         }
     },
     'seeds-dataset': {
         2: {
             'KMeans': KMeans(n_clusters=4, init='random', algorithm='lloyd'),
-            'AffinityPropagation': AffinityPropagation(damping=0.5, affinity='euclidean'),
+            #'AffinityPropagation': AffinityPropagation(damping=0.5, affinity='euclidean'),
+            'AgglomerativeClustering': AgglomerativeClustering(n_clusters=3),
             'OPTICS': OPTICS(min_samples=4, metric='euclidean')
         },
         3: {
             'KMeans': KMeans(n_clusters=4, init='random', algorithm='lloyd'),
-            'AffinityPropagation': AffinityPropagation(damping=0.5, affinity='euclidean'),
+            #'AffinityPropagation': AffinityPropagation(damping=0.5, affinity='euclidean'),
+            'AgglomerativeClustering': AgglomerativeClustering(n_clusters=3),
             'OPTICS': OPTICS(min_samples=6, metric='euclidean')
         },
         'nd': {
             'KMeans': KMeans(n_clusters=4, init='random', algorithm='lloyd'),
-            'AffinityPropagation': AffinityPropagation(damping=0.5, affinity='euclidean'),
+            #'AffinityPropagation': AffinityPropagation(damping=0.5, affinity='euclidean'),
+            'AgglomerativeClustering': AgglomerativeClustering(n_clusters=2),
             'OPTICS': OPTICS(min_samples=12, metric='euclidean')
         }
     },
     'circle-dataset': {
         2: {
             'KMeans': KMeans(n_clusters=5, init='random', algorithm='lloyd'),
-             #'AffinityPropagation': AffinityPropagation(damping=0.5, affinity='euclidean'),
+            'AgglomerativeClustering': AgglomerativeClustering(n_clusters=5),
+            #'AffinityPropagation': AffinityPropagation(damping=0.5, affinity='euclidean'),
             'OPTICS': OPTICS(min_samples=4, metric='euclidean')
         },
         3: {
             'KMeans': KMeans(n_clusters=4, init='random', algorithm='lloyd'),
-             #'AffinityPropagation': AffinityPropagation(damping=0.5, affinity='euclidean'),
+            'AgglomerativeClustering': AgglomerativeClustering(n_clusters=2),
+            #'AffinityPropagation': AffinityPropagation(damping=0.5, affinity='euclidean'),
             'OPTICS': OPTICS(min_samples=6, metric='euclidean')
         },
         'nd': {
             'KMeans': KMeans(n_clusters=4, init='random', algorithm='lloyd'),
-             #'AffinityPropagation': AffinityPropagation(damping=0.5, affinity='euclidean'),
+            'AgglomerativeClustering': AgglomerativeClustering(n_clusters=2),
+            #'AffinityPropagation': AffinityPropagation(damping=0.5, affinity='euclidean'),
             'OPTICS': OPTICS(min_samples=6, metric='euclidean')
         }
     }, 'line-dataset': {
         2: {
             'KMeans': KMeans(n_clusters=4, init='random', algorithm='lloyd'),
-                #'AffinityPropagation': AffinityPropagation(damping=0.5, affinity='euclidean'),
+            'AgglomerativeClustering': AgglomerativeClustering(n_clusters=2),
+            #'AffinityPropagation': AffinityPropagation(damping=0.5, affinity='euclidean'),
             'OPTICS': OPTICS(min_samples=4, metric='euclidean')
         },
         3: {
             'KMeans': KMeans(n_clusters=4, init='random', algorithm='lloyd'),
-                #'AffinityPropagation': AffinityPropagation(damping=0.5, affinity='euclidean'),
+            'AgglomerativeClustering': AgglomerativeClustering(n_clusters=5),
+            #'AffinityPropagation': AffinityPropagation(damping=0.5, affinity='euclidean'),
             'OPTICS': OPTICS(min_samples=6, metric='euclidean')
         },
         'nd': {
             'KMeans': KMeans(n_clusters=4, init='random', algorithm='lloyd'),
-                #'AffinityPropagation': AffinityPropagation(damping=0.5, affinity='euclidean'),
+            'AgglomerativeClustering': AgglomerativeClustering(n_clusters=5),
+            #'AffinityPropagation': AffinityPropagation(damping=0.5, affinity='euclidean'),
             'OPTICS': OPTICS(min_samples=6, metric='euclidean')
         }
     },
     'skewed-dataset': {
         2: {
             'KMeans': KMeans(n_clusters=4, init='random', algorithm='lloyd'),
-                #'AffinityPropagation': AffinityPropagation(damping=0.5, affinity='euclidean'),
+            'AgglomerativeClustering': AgglomerativeClustering(n_clusters=3),
+            #'AffinityPropagation': AffinityPropagation(damping=0.5, affinity='euclidean'),
             'OPTICS': OPTICS(min_samples=4, metric='euclidean')
         },
         3: {
             'KMeans': KMeans(n_clusters=4, init='random', algorithm='lloyd'),
-                #'AffinityPropagation': AffinityPropagation(damping=0.5, affinity='euclidean'),
+            'AgglomerativeClustering': AgglomerativeClustering(n_clusters=4),
+            #'AffinityPropagation': AffinityPropagation(damping=0.5, affinity='euclidean'),
             'OPTICS': OPTICS(min_samples=6, metric='euclidean')
         },
         'nd': {
             'KMeans': KMeans(n_clusters=4, init='random', algorithm='lloyd'),
-                #'AffinityPropagation': AffinityPropagation(damping=0.5, affinity='euclidean'),
+            'AgglomerativeClustering': AgglomerativeClustering(n_clusters=4),
+            #'AffinityPropagation': AffinityPropagation(damping=0.5, affinity='euclidean'),
             'OPTICS': OPTICS(min_samples=6, metric='euclidean')
         }
     }
@@ -184,10 +199,14 @@ def plot_heatmap(df, metric, save_path=None, title=None, provided_ax=None, max_v
     prepared_df_mean = prepared_df.groupby(['epsilon', 'dimensions'])[metric].mean().reset_index()
     prepared_df_pivot = prepared_df_mean.pivot(index='dimensions', columns='epsilon', values=metric)
 
-    min_val, max_val = find_heatmap_min_max(metric)
+    if max_value is not None and min_value is not None:
+        heatmap_min = min_value
+        heatmap_max = max_value
+    else:
+        heatmap_min, heatmap_max = find_heatmap_min_max(metric)
 
     # TODO: Fix min/max for ch
-    heatmap = sns.heatmap(prepared_df_pivot, annot=True, robust=True, square=square, annot_kws={'fontsize':16, 'fontweight':'bold'}, vmin=min_val, vmax=max_val, fmt=".2f", linewidths=.5, ax=ax, cbar=False, cmap='Greens')
+    heatmap = sns.heatmap(prepared_df_pivot, annot=True, robust=True, square=square, annot_kws={'fontsize':16, 'fontweight':'bold'}, vmin=heatmap_min, vmax=heatmap_max, fmt=".2f", linewidths=.5, ax=ax, cbar=False, cmap='Greens')
     # ax.set_title(f"TPR Scores for dataset: {dataset} with epsilon and dimensions")
     ax.set_title(title, fontsize=font_sizes['title'])
     ax.set_ylabel('Dimensions', fontsize=font_sizes['title'])
@@ -203,6 +222,7 @@ def plot_heatmap(df, metric, save_path=None, title=None, provided_ax=None, max_v
         plt.clf()
     else:
         plt.show()
+
 
 def get_mechanism_based_on_dimension(dimensions, variant):
     implementation = mechanism_mapper[variant]
@@ -222,6 +242,8 @@ def get_color_for_cluster_algorithm(name: str):
         return 'red'
     elif name.__contains__('OPTICS'):
         return 'green'
+    elif name.__contains__('Agglomerative'):
+        return 'orange'
 
 def map_mechanism_to_color(mechanism):
     if mechanism == 'density-kd-Laplace':
@@ -558,8 +580,8 @@ def generate_input_data(dataset: str):
     # TODO: Properly order this file
     plain_df = helpers.load_dataset(dataset_location)
     max_columns = plain_df.drop(columns=['class']).shape[1]
-    full_perturbation = pd.DataFrame()
     for variant in variants:
+        full_perturbation = pd.DataFrame()
         input_path = f'./data/kd-laplace/{variant}/{dataset}'
         create_directory_if_nonexistent(input_path)
         full_perturbation_loc = f'./data/kd-laplace/{variant}/{dataset}/full_perturbation.csv'
@@ -605,6 +627,39 @@ def generate_utility_experiments(dataset: str):
         utility_df.to_csv(utility_loc)
 
 @app.command()
+def generate_distance_data(dataset: str):
+    epsilons = helpers.get_experiment_epsilons()
+    dataset_location = datasets_mapper[dataset]
+    plain_df = helpers.load_dataset(dataset_location)
+    plain_df_no_class = plain_df.drop(columns=['class'])
+    max_columns = plain_df_no_class.shape[1]
+
+    for variant in variants:
+        perturbed_dataset_loc = f'./data/kd-laplace/{variant}/{dataset}/full_perturbation.csv'
+        perturbed_dataset = helpers.load_dataset(perturbed_dataset_loc)
+        privacy_distance_df_variant = pd.DataFrame()
+        privacy_distance_loc = f'./data/kd-laplace/{variant}/{dataset}/privacy_distance.csv'
+        if os.path.exists(privacy_distance_loc):
+            print('Privacy distance already exists, skipping...')
+            continue
+        for dimension in range(2, max_columns + 1):
+            print(f'Running for variant {variant} and dimension {dimension}')
+            perturbed_dataset_for_dim = perturbed_dataset.loc[perturbed_dataset['dimension'] == dimension]
+            data_for_dimension = plain_df_no_class.iloc[:, 0:dimension]
+
+            privacy_distance_df = helpers.compute_euclidean_distances_between_two_datasets_per_epsilon(data_for_dimension,
+                                                                                                         perturbed_dataset_for_dim,
+                                                                                                       epsilons,
+                                                                                                       variant,
+                                                                                                       dataset,
+                                                                                                       data_for_dimension.columns)
+            privacy_distance_df['dimension'] = dimension
+            privacy_distance_df_variant = pd.concat([privacy_distance_df_variant, privacy_distance_df], ignore_index=True)
+
+        privacy_distance_df_variant.to_csv(privacy_distance_loc)
+
+
+@app.command()
 def generate_security_experiments(dataset: str):
     epsilons = helpers.get_experiment_epsilons()
     dataset_location = datasets_mapper[dataset]
@@ -641,8 +696,10 @@ def generate_thesis_reports(dataset: str):
             save_path_local = f'./data/kd-laplace/{variant}/{dataset}'
             create_directory_if_nonexistent(save_path)
             dataset_loc = f'./data/kd-laplace/{variant}/{dataset}/utility.csv'
-            dataset_df = pd.read_csv(dataset_loc)
+            dataset_distance_loc = f'./data/kd-laplace/{variant}/{dataset}/privacy_distance.csv'
+            dataset_df = helpers.load_dataset(dataset_loc)
             dataset_df_kmeans = dataset_df.loc[dataset_df['clustering_algorithm'].str.contains('KMeans')]
+            dataset_distance_df = helpers.load_dataset(dataset_distance_loc)
             security_df_loc = f'{save_path_local}/security.csv'
             security_df = pd.read_csv(security_df_loc)
             security_df['dimensions'] = security_df['dimension']
@@ -653,6 +710,7 @@ def generate_thesis_reports(dataset: str):
                              title='', square=square)
                 plot_heatmap(dataset_df_kmeans, utility_metric, save_path=f'{save_path}/',
                              title='', square=square)
+
 
                 ## Compare cluster utility
                 filter_dimensions = dataset_df['dimensions'] == dim
@@ -668,6 +726,13 @@ def generate_thesis_reports(dataset: str):
                                      export_path=cluster_utility_export_path)
 
                 plot_results_for_mechanism_comparison(dataset_cluster_utility, plain_df.iloc[:, 0:dim], cluster_models, cluster_utility_export_path + '/', save=True, dimension=dim)
+
+                # export privacy distance
+                dataset_distance_df['dimensions'] = dataset_distance_df['dimension']
+            heatmap_min = dataset_distance_df[dataset_distance_df['algorithm'] == variant]['distance'].min()
+            heatmap_max = dataset_distance_df[dataset_distance_df['algorithm'] == variant]['distance'].max()
+            plot_heatmap(dataset_distance_df, 'distance', save_path=f'{save_path}/',
+                         title='', square=square, min_value=heatmap_min, max_value=heatmap_max)
 
             #max_advantage = security_df['shokri_mi_adv'].max()
             #min_advantage = security_df['shokri_mi_adv'].min()
