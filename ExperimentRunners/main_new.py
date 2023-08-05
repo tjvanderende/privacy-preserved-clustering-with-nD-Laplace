@@ -164,33 +164,11 @@ variants = ['kd-Laplace', 'grid-kd-Laplace', 'density-kd-Laplace', 'piecewise']
 
 app = typer.Typer()
 
-def plot_heatmap_legend(save_path, heatmap):
-    fig, ax = plt.subplots(figsize=(1, 6))
-    fig.subplots_adjust(right=0.5)
-    cbar = plt.colorbar(heatmap, cax=ax),
-    cbar[0].ax.tick_params(labelsize=font_sizes['normal'])
-    plt.tight_layout()
-    plt.savefig(save_path)
-    plt.clf()
-
-def find_heatmap_min_max(metric):
-    if metric == 'ami' or metric == 'ari':
-        return 0, 1
-    elif metric == 'ch':
-        return 0, 2000
-    elif metric == 'sc':
-        return -1, 1
-    elif metric == 'shokri_mi_adv':
-        return 0, 0.7
-    elif metric == 'tpr':
-        return 0, 1
-
 def plot_heatmap(df, metric, save_path=None, title=None, provided_ax=None, max_value=None, min_value=None, square=True):
     fig, ax = plt.subplots(figsize=(15, 8))
     ax = ax if provided_ax is None else provided_ax
     scores_df = df.copy()
     prepared_df = scores_df.copy()
-    heatmap_min = 0
 
     if (metric == 'tpr'):
         prepared_df['tpr'] = prepared_df['tpr'].apply(
@@ -199,14 +177,7 @@ def plot_heatmap(df, metric, save_path=None, title=None, provided_ax=None, max_v
     prepared_df_mean = prepared_df.groupby(['epsilon', 'dimensions'])[metric].mean().reset_index()
     prepared_df_pivot = prepared_df_mean.pivot(index='dimensions', columns='epsilon', values=metric)
 
-    if max_value is not None and min_value is not None:
-        heatmap_min = min_value
-        heatmap_max = max_value
-    else:
-        heatmap_min, heatmap_max = find_heatmap_min_max(metric)
-
-    # TODO: Fix min/max for ch
-    heatmap = sns.heatmap(prepared_df_pivot, annot=True, robust=True, square=square, annot_kws={'fontsize':16, 'fontweight':'bold'}, vmin=heatmap_min, vmax=heatmap_max, fmt=".2f", linewidths=.5, ax=ax, cbar=False, cmap='Greens')
+    heatmap = sns.heatmap(prepared_df_pivot, annot=True, robust=True, square=square, annot_kws={'fontsize':16, 'fontweight':'bold'}, fmt=".2f", linewidths=.5, ax=ax, cbar=True, cmap='Greens')
     # ax.set_title(f"TPR Scores for dataset: {dataset} with epsilon and dimensions")
     ax.set_title(title, fontsize=font_sizes['title'])
     ax.set_ylabel('Dimensions', fontsize=font_sizes['title'])
@@ -215,8 +186,8 @@ def plot_heatmap(df, metric, save_path=None, title=None, provided_ax=None, max_v
 
     plt.tight_layout()
     if save_path is not None:
-        cbar = heatmap.get_children()[0]
-        plot_heatmap_legend(f'{save_path}/heatmap_legend_{metric}.png', cbar)
+        #cbar = heatmap.get_children()[0]
+        # plot_heatmap_legend(f'{save_path}/heatmap_legend_{metric}.png', cbar)
         # TODO: Not working?
         fig.savefig(f'{save_path}/{metric}.png', dpi=300, bbox_inches='tight')
         plt.clf()
@@ -287,19 +258,20 @@ def calculate_baseline(models, plain_df, n_times=10):
 
     return {'avg_ch': np.sum(avg_ch) / n_times, 'avg_sc': np.sum(avg_sh) / n_times}
 
-def plot_results_for_mechanism_comparison(utility_metrics, plain_df, cluster_models, export_path='../export/results/', save=True, dimension=2):
+def plot_results_for_mechanism_comparison(utility_metrics, compare_to, plain_df, cluster_models, export_path='../export/results/', save=True, dimension=2):
     fig, (ax1, ax2) = plt.subplots(2,1, figsize=(10, 8), linewidth=2, constrained_layout=True)
 
     ax_ami = plot_cluster_utility(utility_metrics, 'ami', helpers.get_experiment_epsilons(), title='', provided_ax=ax1,
-                                metric=get_full_metric_name('ami'), cluster_column_name='clustering_algorithm', save=False)
+                                metric=get_full_metric_name('ami'), cluster_column_name='clustering_algorithm', save=False, compare_to=compare_to)
     ax_sc =  plot_cluster_utility(utility_metrics, 'sc', helpers.get_experiment_epsilons(), title='', provided_ax=ax2,
-                                metric=get_full_metric_name('sc'), cluster_column_name='clustering_algorithm', save=False)
+                                metric=get_full_metric_name('sc'), cluster_column_name='clustering_algorithm', save=False, compare_to=compare_to)
 
     baseline = calculate_baseline(cluster_models, plain_df)
-    ax_sc.axhline(y=baseline['avg_sc'], linestyle='--', label='non-private KMeans (baseline)')
+    ax_sc.axhline(y=baseline['avg_sc'], linestyle='-.', label='non-private KMeans (baseline)')
 
+    ax_sc.legend()
     ax_ami.get_legend().remove()
-    ax_sc.get_legend().remove()
+    #ax_sc.get_legend().remove()
     ax1.grid(linestyle='dotted')
     ax2.grid(linestyle='dotted')
     ax_ami.set_xticks(helpers.get_experiment_epsilons())
@@ -307,10 +279,10 @@ def plot_results_for_mechanism_comparison(utility_metrics, plain_df, cluster_mod
     plt.tight_layout()
     if save:
         # Create new figure and add legend
-        figLegend = plt.figure(figsize=(1.5, 1.3))
-        plt.figlegend(*ax2.get_legend_handles_labels(), loc='upper left')
+        #figLegend = plt.figure(figsize=(1.5, 1.3))
+        #plt.figlegend(*ax2.get_legend_handles_labels(), loc='upper left')
 
-        figLegend.savefig(f'{export_path}/legend_{dimension}.png', dpi=300, bbox_inches='tight')
+        #figLegend.savefig(f'{export_path}/legend_{dimension}.png', dpi=300, bbox_inches='tight')
         fig.savefig(f'{export_path}/ami-and-sc_{dimension}_dimensions.png', dpi=300, bbox_inches='tight')
         plt.clf()
 
@@ -337,25 +309,32 @@ def find_baseline_mi_values(plain_df: pd.DataFrame, y_target=None, cluster_algor
 def plot_cluster_utility(result, metric_name, epsilons, cluster_column_name='type',
                      metric='Adjusted Mutual Information (AMI)', provided_ax=None,
                      title='External validation (AMI & ARI): Difference between privately trained cluster algorithms '
-                           'versus \n non-private trained cluster algorithms', save=True, export_file_name=None, export_path=None):
+                           'versus \n non-private trained cluster algorithms', save=True, export_file_name=None, export_path=None, compare_to=None):
     fig, ax = plt.subplots(1, sharex=True, figsize=(12, 10))
     types = result[cluster_column_name].unique()
     ax_local = ax if provided_ax is None else provided_ax
-    ax = sns.lineplot(x='epsilon', y=metric_name, data=result, ax=ax_local, style=cluster_column_name,
-                      hue=cluster_column_name,
-                      palette=generate_color_palette_clustering(types), markers=True, legend=True)
-    ax.set_xticks(epsilons, labels=epsilons)
-    ax.set_title(title, fontsize=font_sizes['title'])
-    ax.set_xlabel('Privacy budget ($\epsilon$)', fontsize=font_sizes['normal'])
-    ax.set_ylabel(metric, fontsize=font_sizes['normal'])
-    ax.tick_params(labelsize=font_sizes['normal'])
+    result_copy = result.copy()
+    if compare_to is not None:
+        result_copy = pd.concat([result_copy, compare_to], ignore_index=True)
+    result_copy['Privacy mechanism'] = result_copy['algorithm']
+    result_copy['Clustering algorithm'] = result_copy[cluster_column_name]
+    ax = sns.lineplot(x='epsilon', y=metric_name, data=result_copy, ax=ax_local, style='Privacy mechanism',
+                      hue='Clustering algorithm',
+                      palette=generate_color_palette_clustering(types), markers=False, legend=True)
+
+
+    ax_local.set_xticks(epsilons, labels=epsilons)
+    ax_local.set_title(title, fontsize=font_sizes['title'])
+    ax_local.set_xlabel('Privacy budget ($\epsilon$)', fontsize=font_sizes['normal'])
+    ax_local.set_ylabel(metric, fontsize=font_sizes['normal'])
+    ax_local.tick_params(labelsize=font_sizes['normal'])
 
     if save:
         file_name = metric_name if export_file_name is None else export_file_name
         fig.savefig(f'{export_path}/{file_name}.png')
         plt.clf()
     # ax.get_legend().remove()
-    return ax
+    return ax_local
 
 def plot_bar_colorblindness(bar):
     hatches = ['-', '+', 'x', '\\', '*', 'o', '--']
@@ -716,6 +695,9 @@ def generate_thesis_reports(dataset: str):
                 ## Compare cluster utility
                 filter_dimensions = dataset_df['dimensions'] == dim
                 dataset_cluster_utility = dataset_df.loc[(filter_dimensions) & (dataset_df['mechanism'] == variant)]
+                piecewise_loc = f'./data/kd-laplace/piecewise/{dataset}/utility.csv'
+                dataset_df_piecewise = helpers.load_dataset(piecewise_loc)
+                dataset_df_piecewise = dataset_df_piecewise.loc[dataset_df_piecewise['dimensions'] == dim]
                 #mechanism = get_mechanism_based_on_dimension(dim, variant)
                 cluster_utility_export_path = f'{save_path}'
                 cluster_utility_export_filename = f'cluster_utility_{utility_metric}_for_{dim}_dimensions'
@@ -724,9 +706,9 @@ def generate_thesis_reports(dataset: str):
                                      cluster_column_name='clustering_algorithm', metric=get_full_metric_name(utility_metric),
                                      title='',
                                      export_file_name=cluster_utility_export_filename,
-                                     export_path=cluster_utility_export_path)
+                                     export_path=cluster_utility_export_path, compare_to=dataset_df_piecewise)
 
-                plot_results_for_mechanism_comparison(dataset_cluster_utility, plain_df.iloc[:, 0:dim], cluster_models, cluster_utility_export_path + '/', save=True, dimension=dim)
+                plot_results_for_mechanism_comparison(dataset_cluster_utility, dataset_df_piecewise, plain_df.iloc[:, 0:dim], cluster_models, cluster_utility_export_path + '/', save=True, dimension=dim)
 
                 # export privacy distance
                 dataset_distance_df['dimensions'] = dataset_distance_df['dimension']

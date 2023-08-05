@@ -83,7 +83,7 @@ def load_plain_and_perturbed_dataset(epsilon, import_path, perturbed_path):
 
 def get_experiment_epsilons():
     # epsilons = [0.01, 0.03, 0.05, 0.07, 0.1 , 0.5, 0.7, 1, 1.5, 2, 2.5, 3, 3.5, 5, 7, 9]
-    epsilons = [0.5, 0.7, 1, 1.5, 2, 2.5, 3, 3.5, 5, 7, 9]
+    epsilons = [0.5, 1, 1.5, 2, 2.5, 3, 3.5, 5, 7, 9]
 
     return epsilons
 
