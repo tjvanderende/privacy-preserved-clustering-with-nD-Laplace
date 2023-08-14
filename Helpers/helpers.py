@@ -67,8 +67,8 @@ def remove_missing(dataframe: pd.DataFrame):
     return without_missing
 
 
-def load_dataset(datasetname):
-    df = pd.read_csv(datasetname)
+def load_dataset(datasetname, seperator=';'):
+    df = pd.read_csv(datasetname, sep=seperator)
     df = df.loc[:, ~df.columns.str.contains('^Unnamed')]
     return df
 
