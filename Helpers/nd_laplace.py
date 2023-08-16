@@ -38,7 +38,7 @@ def generate_nd_laplace_noise_for_dataset(dataframe: pd.DataFrame, epsilon: floa
         Z.append(perturbed_row)
     return pd.DataFrame(Z, columns=dataframe.columns)
 
-def generate_truncated_nd_laplace_noise_for_dataset(X: pd.DataFrame, epsilon, n_columns=6):
+def generate_truncated_nd_laplace_noise_for_dataset(X: pd.DataFrame, epsilon, grid_size=6):
     Z_pd = generate_nd_laplace_noise_for_dataset(X, epsilon)
     Z = Z_pd.values
-    return helpers.truncate_n_dimensional_laplace_noise(Z, X.values, grid_size=n_columns, columns=X.columns)
+    return helpers.truncate_n_dimensional_laplace_noise(Z, X.values, grid_size=grid_size, columns=X.columns)

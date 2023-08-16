@@ -1,7 +1,6 @@
 
 import numpy as np
 from scipy.stats import gamma
-from Helpers import helpers 
 
 def generate_unit_sphere(): 
     vector = np.random.randn(3)
@@ -86,4 +85,4 @@ def generate_truncated_perturbed_dataset(X, epsilon):
     Z = generate_3D_noise_for_dataset(X_numpy, epsilon)
     Z = np.array(Z)
 
-    return helpers.truncate_n_dimensional_laplace_noise(Z, X_numpy, 12, columns=X.columns)
+    return helpers.truncate_n_dimensional_laplace_noise(Z, X_numpy, columns=X.columns)

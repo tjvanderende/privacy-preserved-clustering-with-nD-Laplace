@@ -2,10 +2,11 @@ import math
 import random
 import pandas as pd
 import numpy as np
-from Helpers import threed_laplace, twod_laplace, helpers
+from sklearn.preprocessing import MinMaxScaler
+
+from Helpers import threed_laplace, twod_laplace, nd_laplace
 from scipy import spatial
 
-from Helpers.nd_laplace import spherepicking, ct
 from scipy.stats import gamma
 from scipy.special import logsumexp
 
@@ -227,9 +228,9 @@ class ldp_mechanism:
 
     def generate_nd_noise_for_point(self, x):
         n = len(x)
-        sphere_noise = spherepicking(n)
+        sphere_noise = nd_laplace.spherepicking(n)
         r = gamma.rvs(n, scale=1 / self.epsilon)
-        u = ct(r, sphere_noise)
+        u = nd_laplace.ct(r, sphere_noise)
         z = x + u
         return z, r
 
@@ -255,17 +256,16 @@ class ldp_mechanism:
     Epsilon was added to have the same format as the other mechanisms.
     """
 
-    def randomise(self, non_private_dataset: pd.DataFrame, epsilon, grid_size=6, plot_validation: bool = False, max_iterations=50):
+    def randomise(self, non_private_dataset: pd.DataFrame, epsilon, grid_size=6, plot_validation: bool = False, max_iterations=50, apply_normalization=False):
         self.epsilon = epsilon
+        scaler = MinMaxScaler()
         print('Run appropiate mechanism to generate a private dataset...')
         columns = non_private_dataset.columns
-        private_dataframe = self.generate_nd_laplace_for_dataset(non_private_dataset)
+        if apply_normalization:
+            private_dataframe = self.generate_nd_laplace_for_dataset(pd.DataFrame(scaler.fit_transform(non_private_dataset), columns=columns))
+        else:
+            private_dataframe = self.generate_nd_laplace_for_dataset(non_private_dataset)
 
-        print('Approximate the private dataset outside the domain to be inside the domain of the non-private dataset '
-              'using a grid...')
-        perturbed_df_with_grid_remapping = self.grid_remap(non_private_dataset.values,
-                                                           private_dataframe.drop(columns=['r']).values,
-                                                           grid_size=grid_size, columns=columns, include_indicator=True)
         # perturbed_df_find_grid_remappings_with_r = pd.concat([private_dataframe['r'], perturbed_df_with_grid_remapping], axis=1)
         # print(perturbed_df_with_grid_remapping)
         print('All data that was remapped using a grid, is optimally remapped...')
@@ -273,8 +273,16 @@ class ldp_mechanism:
         # remap any points that are outside the domain of the non-private dataset after optimal remapping
         print('Shapes', perturbed_df_optimal_remapping.shape, private_dataframe.shape)
         if (plot_validation):
+            print(
+                'Approximate the private dataset outside the domain to be inside the domain of the non-private dataset '
+                'using a grid...')
+            perturbed_df_with_grid_remapping = self.grid_remap(non_private_dataset.values,
+                                                               private_dataframe.drop(columns=['r']).values,
+                                                               grid_size=grid_size, columns=columns,
+                                                               include_indicator=True)
             self.validate_randomisation(non_private_dataset, perturbed_df_optimal_remapping,
                                         perturbed_df_with_grid_remapping, private_dataframe)
+
         return perturbed_df_optimal_remapping.drop(columns=['r'])
 
     def validate_randomisation(self, non_private_dataset: pd.DataFrame, remapped_private_dataset: pd.DataFrame,

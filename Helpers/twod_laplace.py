@@ -3,42 +3,48 @@ import math
 import random
 import numpy as np
 from Helpers import helpers
+from scipy.special import lambertw
 
-#Define Lambda distribution
+
+# Define Lambda distribution
 def LambertW(x):
-	#Min diff decides when the while loop ends
-	min_diff = 1e-10
-	if (x == -1 / np.e):
-		return -1
-	elif ((x < 0) and (x > -1/np.e)):
-		q = np.log(-x)
-		p = 1
-		while (abs(p-q) > min_diff):
-			p = (q * q + x / np.exp(q)) / (q + 1)
-			q = (p * p + x / np.exp(p)) / (p + 1)
-		#determine the precision of the float number to be returned
-		return (np.round(1000000 * q) / 1000000)
-	else:
-		return 0
+    # Min diff decides when the while loop ends
+    min_diff = 1e-10
+    # if (x == -1 / np.e):
+    #	return -1
+    # elif ((x < 0) and (x > -1/np.e)):
+    #	q = np.log(-x)
+    #	p = 1
+    #	while (abs(p-q) > min_diff):
+    #		p = (q * q + x / np.exp(q)) / (q + 1)
+    #		q = (p * p + x / np.exp(p)) / (p + 1)
+    # determine the precision of the float number to be returned
+    #	return (np.round(1000000 * q) / 1000000)
+    # else:
+    #	return 0
+    return lambertw(x, k=-1).real
 
-def inverseCumulativeGamma (eps, p): 
-  x = (p - 1) / np.e
-  return -(LambertW(x) + 1)/eps
+
+def inverseCumulativeGamma(eps, p):
+    x = (p - 1) / np.e
+    return -(LambertW(x) + 1) / eps
+
 
 def addVectorToPoint(point, distance, angle):
-	x1, y1 = point
-	x2 = x1 + (distance * np.cos(angle))
-	y2 = y1 + (distance * np.sin(angle))
-	return x2, y2
-    
-def generate_laplace_noise(eps, x, y): 
-    theta = np.random.rand()*np.pi*2
+    x1, y1 = point
+    x2 = x1 + (distance * np.cos(angle))
+    y2 = y1 + (distance * np.sin(angle))
+    return x2, y2
+
+
+def generate_laplace_noise(eps, x, y):
+    theta = np.random.rand() * np.pi * 2
     p = random.random()
-    r = inverseCumulativeGamma(eps, p) # draw radius distance
+    r = inverseCumulativeGamma(eps, p)  # draw radius distance
     return addVectorToPoint([x, y], r, theta)
 
 
-def calculate_radius_with_noise(x0, n, epsilon): 
+def calculate_radius_with_noise(x0, n, epsilon):
     """
         x0: Point to perturb
         n: amount of points to generate
@@ -55,11 +61,11 @@ def calculate_radius_with_noise(x0, n, epsilon):
 
     R = total_dis / n
     return np.array(Z), R
-    
+
 
 # ---------------------------------------------
 # ----------------- TRUNCATION ----------------
-def truncate(x_max, x_min, x0, z, epsilon, max_iteration = 1000): 
+def truncate(x_max, x_min, x0, z, epsilon, max_iteration=1000):
     """
     x_max: max domain point (x, y)
     x_min: min domain point (x, y)
@@ -71,7 +77,7 @@ def truncate(x_max, x_min, x0, z, epsilon, max_iteration = 1000):
     x1, y1 = x_min
 
     zx, zy = z
-    if(x1 < zx < x2 and y1 < zy < y2): 
+    if (x1 < zx < x2 and y1 < zy < y2):
         # print('inside', x, y)
         return z
     elif max_iteration > 0:
@@ -79,9 +85,10 @@ def truncate(x_max, x_min, x0, z, epsilon, max_iteration = 1000):
         z2 = generate_laplace_noise(epsilon, x, y)
         return truncate(x_max, x_min, x0, z2, epsilon, max_iteration - 1)
     else:
-         return z
+        return z
 
-def truncate_array(x0, X, Z, epsilon): 
+
+def truncate_array(x0, X, Z, epsilon):
     truncatedZ1 = []
     x_max = [np.max(X[:, 0]), np.max(X[:, 1])]
     x_min = [np.min(X[:, 0]), np.min(X[:, 1])]
@@ -90,25 +97,28 @@ def truncate_array(x0, X, Z, epsilon):
 
     return np.array(truncatedZ1)
 
-def generate_laplace_noise_for_point(x0, epsilon, X, doTruncate = True): 
+
+def generate_laplace_noise_for_point(x0, epsilon, X, doTruncate=True):
     x_max = [np.max(X[:, 0]), np.max(X[:, 1])]
     x_min = [np.min(X[:, 0]), np.min(X[:, 1])]
     z, R = calculate_radius_with_noise(x0, 1, epsilon)
-    if(doTruncate):
+    if (doTruncate):
         z = truncate(x_max, x_min, x0, z[0], epsilon)
     return z
 
-def generate_truncated_laplace_noise(X, epsilon): 
+
+def generate_truncated_laplace_noise(X, epsilon):
     Z = []
     X_numpy = np.array(X)
     x_max = [np.max(X_numpy[:, 0]), np.max(X_numpy[:, 1])]
     x_min = [np.min(X_numpy[:, 0]), np.min(X_numpy[:, 1])]
     for x0 in X_numpy:
         z, R = calculate_radius_with_noise(x0, 1, epsilon)
-        #z = truncate(x_max, x_min, x0, z[0], epsilon)
+        # z = truncate(x_max, x_min, x0, z[0], epsilon)
         Z.append(z[0])
     Z = np.array(Z)
     return helpers.truncate_n_dimensional_laplace_noise(Z, X_numpy, grid_size=12, columns=X.columns)
+
 
 def generate_laplace_noise_for_dataset(X, epsilon):
     Z = []
