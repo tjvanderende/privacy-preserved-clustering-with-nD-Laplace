@@ -53,7 +53,7 @@ mechanism_mapper = {
 model_mapper = {
     'heart-dataset': {
         2: {
-            'KMeans': KMeans(n_clusters=4, init='random', algorithm='lloyd'),
+            'KMeans': KMeans(n_clusters=4, init='random', algorithm='lloy   d'),
             #'AffinityPropagation': AffinityPropagation(damping=0.5, affinity='euclidean'),
             'AgglomerativeClustering': AgglomerativeClustering(n_clusters=2, metric='euclidean'),
             'OPTICS': OPTICS(min_samples=4, metric='euclidean')
