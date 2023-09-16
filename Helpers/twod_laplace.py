@@ -2,7 +2,7 @@
 import math
 import random
 import numpy as np
-from Helpers import helpers
+# from Helpers import helpers
 from scipy.special import lambertw
 
 
@@ -117,7 +117,7 @@ def generate_truncated_laplace_noise(X, epsilon):
         # z = truncate(x_max, x_min, x0, z[0], epsilon)
         Z.append(z[0])
     Z = np.array(Z)
-    return helpers.truncate_n_dimensional_laplace_noise(Z, X_numpy, grid_size=12, columns=X.columns)
+    #return helpers.truncate_n_dimensional_laplace_noise(Z, X_numpy, columns=X.columns)
 
 
 def generate_laplace_noise_for_dataset(X, epsilon):

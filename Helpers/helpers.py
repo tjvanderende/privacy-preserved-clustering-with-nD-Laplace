@@ -17,7 +17,7 @@ from Helpers import twod_laplace, threed_laplace, nd_laplace
 from scipy.spatial import KDTree
 from itertools import cycle
 
-from Helpers.ldp_mechanism import ldp_mechanism
+#from Helpers.ldp_mechanism import ldp_mechanism
 from Helpers.pairwise import PMBase, PiecewiseMechanism
 from sklearn.neighbors import NearestNeighbors
 from sklearn.preprocessing import MinMaxScaler
@@ -229,10 +229,15 @@ def run_mi_experiments(X, y_true, epsilons, n_times=10, algorithm=None, targets=
             predicted_y = np.concatenate((member_infer, nonmember_infer))
             actual_y = np.concatenate((np.ones(len(member_infer)), np.zeros(len(nonmember_infer))))
             fpr, tpr, _ = roc_curve(actual_y, predicted_y, pos_label=1)
-            attack_adv = tpr[1] / (tpr[1] + fpr[1])
-            print(tpr[1], fpr[1])
+
+            members_correctly_classified = np.sum((predicted_y.flatten() == 1) & (actual_y.flatten() == 1))
+            all_members = np.sum(actual_y == 1)
+            ar = members_correctly_classified / all_members
+            attack_advantage_yeom = ar - fpr[1]
+            print('actual training', members_correctly_classified, all_members, ar, attack_advantage_yeom)
+
             shokri_mi_avgs['shokri_mi_adv'].append(tpr[1] - fpr[1])
-            shokri_mi_avgs['attack_adv'].append(attack_adv)
+            shokri_mi_avgs['attack_adv'].append(attack_advantage_yeom)
             shokri_mi_avgs['tpr'].append(tpr)
             shokri_mi_avgs['fpr'].append(fpr)
 
@@ -265,7 +270,7 @@ def reshape_data_to_uniform(dataframe: pd.DataFrame):
     return scaler, pd.DataFrame(scaler.transform(dataframe.values), columns=dataframe.columns)
 
 
-def truncate_n_dimensional_laplace_noise(perturbed_df: np.array, plain_df: np.array, grid_size=10,
+def truncate_n_dimensional_laplace_noise(perturbed_df: np.array, plain_df: np.array, grid_size=8,
                                          include_indicator=False, columns=['x', 'y']):
     mesh = [np.linspace(plain_df[:, i].min(), plain_df[:, i].max(), num=grid_size) for i in range(plain_df.shape[1])]
     meshgrid = np.meshgrid(*mesh, indexing='ij')

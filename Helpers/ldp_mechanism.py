@@ -23,13 +23,9 @@ class ldp_mechanism:
         mesh = [np.linspace(non_private_dataset[:, i].min(), non_private_dataset[:, i].max(), num=grid_size) for i in
                 range(non_private_dataset.shape[1])]
         meshgrid = np.meshgrid(*mesh, indexing='ij')
-        # Create a KDTree from dataset2
         tree = spatial.KDTree(non_private_dataset)
-
-        # Query the KDTree with dataset1 to find the closest points in dataset2
         _, closest_indices = tree.query(private_dataset)
 
-        # Calculate the distances between dataset1 and closest points in dataset2
         distances = np.linalg.norm(private_dataset - non_private_dataset[closest_indices], axis=1)
 
         # Reshape the meshgrid array
@@ -38,15 +34,15 @@ class ldp_mechanism:
         # Create a KDTree from meshgrid
         meshgrid_tree = spatial.KDTree(meshgrid_reshaped.reshape(-1, meshgrid_reshaped.shape[-1]))
 
-        # Query the KDTree with dataset1 to find the closest points in meshgrid
+        # Query the KDTree with private dataset  to find the closest points in meshgrid
         _, closest_meshgrid_indices = meshgrid_tree.query(private_dataset)
 
-        # Calculate the distances between dataset1 and closest points in meshgrid
+        # Calculate the distances between private dataset  and closest points in meshgrid
         meshgrid_distances = np.linalg.norm(
             private_dataset - meshgrid_reshaped.reshape(-1, meshgrid_reshaped.shape[-1])[closest_meshgrid_indices],
             axis=1)
 
-        # Check if each point in dataset1 is within the domain of dataset2
+        # Check if each point in private dataset is within the domain of non private dataset
         outside_domain_mask = self.get_outside_domain_mask(private_dataset, non_private_dataset)
 
         # Create a mask for points outside the domain and closer to meshgrid points
@@ -188,7 +184,6 @@ class ldp_mechanism:
     Generate noise for a point in 3-dimensional space
     @returns: x, y, z, r, where r is the radial distance from the center.
     """
-
     def generate_3d_noise_for_point(self):
         polar_angle, azimuth, _ = threed_laplace.generate_unit_sphere()  # theta, psi
         r = threed_laplace.generate_r(self.epsilon)
@@ -205,7 +200,6 @@ class ldp_mechanism:
     """
     Generate noise for a dataset in 3-dimensional space
     """
-
     def generate_3d_noise_for_dataset(self, non_private_dataset: pd.DataFrame):
         Z = []
         R = []
@@ -269,7 +263,7 @@ class ldp_mechanism:
         # perturbed_df_find_grid_remappings_with_r = pd.concat([private_dataframe['r'], perturbed_df_with_grid_remapping], axis=1)
         # print(perturbed_df_with_grid_remapping)
         print('All data that was remapped using a grid, is optimally remapped...')
-        perturbed_df_optimal_remapping = self.optimal_remap(non_private_dataset, private_dataframe, max_iterations)
+        perturbed_df_optimal_remapping = self.optimal_remap(non_private_dataset.copy(), private_dataframe.copy(), max_iterations)
         # remap any points that are outside the domain of the non-private dataset after optimal remapping
         print('Shapes', perturbed_df_optimal_remapping.shape, private_dataframe.shape)
         if (plot_validation):

@@ -14,7 +14,7 @@ from sklearn import clone
 from sklearn.cluster import KMeans, AffinityPropagation, OPTICS, AgglomerativeClustering
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import adjusted_mutual_info_score, adjusted_rand_score, calinski_harabasz_score, silhouette_score, \
-    roc_curve
+    roc_curve, precision_score, recall_score, auc, roc_auc_score
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
 import seaborn as sns
@@ -27,19 +27,19 @@ font_sizes = {
     'normal': 16,
     'title': 20,
 }
-mechanisms = ['kd-Laplace', 'piecewise']
+mechanisms = ['nd-Laplace', 'piecewise']
 mechanism_mapper = {
-    'kd-Laplace': {
+    'nd-Laplace': {
         2: helpers.get_mechanism('2d-laplace'),
         3: helpers.get_mechanism('3d-laplace'),
         'nd': helpers.get_mechanism('nd-laplace'),
     },
-    'grid-kd-Laplace': {
+    'grid-nd-Laplace': {
         2: helpers.get_mechanism('2d-laplace-truncated'),
         3: helpers.get_mechanism('3d-laplace-truncated'),
         'nd': helpers.get_mechanism('nd-laplace-truncated'),
     },
-    'density-kd-Laplace': {
+    'density-nd-Laplace': {
         2: helpers.get_mechanism('2d-laplace-optimal-truncated'),
         3: helpers.get_mechanism('3d-laplace-optimal-truncated'),
         'nd': helpers.get_mechanism('nd-laplace-optimal-truncated'),
@@ -53,7 +53,7 @@ mechanism_mapper = {
 model_mapper = {
     'heart-dataset': {
         2: {
-            'KMeans': KMeans(n_clusters=4, init='random', algorithm='lloy   d'),
+            'KMeans': KMeans(n_clusters=2, init='random', algorithm='lloyd'),
             #'AffinityPropagation': AffinityPropagation(damping=0.5, affinity='euclidean'),
             'AgglomerativeClustering': AgglomerativeClustering(n_clusters=2, metric='euclidean'),
             'OPTICS': OPTICS(min_samples=4, metric='euclidean')
@@ -61,11 +61,11 @@ model_mapper = {
         3: {
             'KMeans': KMeans(n_clusters=4, init='random', algorithm='lloyd'),
             # 'AffinityPropagation': AffinityPropagation(damping=0.5, affinity='euclidean'),
-            'AgglomerativeClustering': AgglomerativeClustering(n_clusters=2, metric='euclidean'),
+            'AgglomerativeClustering': AgglomerativeClustering(n_clusters=4, metric='euclidean'),
             'OPTICS': OPTICS(min_samples=6, metric='euclidean')
         },
         'nd': {
-            'KMeans': KMeans(n_clusters=4, init='random', algorithm='lloyd'),
+            'KMeans': KMeans(n_clusters=2, init='random', algorithm='lloyd'),
             # 'AffinityPropagation': AffinityPropagation(damping=0.5, affinity='euclidean'),
             'AgglomerativeClustering': AgglomerativeClustering(n_clusters=3, metric='euclidean'),
             'OPTICS': OPTICS(min_samples=18, metric='euclidean')
@@ -73,34 +73,34 @@ model_mapper = {
     },
     'seeds-dataset': {
         2: {
-            'KMeans': KMeans(n_clusters=4, init='random', algorithm='lloyd'),
+            'KMeans': KMeans(n_clusters=2, init='random', algorithm='lloyd'),
             #'AffinityPropagation': AffinityPropagation(damping=0.5, affinity='euclidean'),
-            'AgglomerativeClustering': AgglomerativeClustering(n_clusters=3),
+            'AgglomerativeClustering': AgglomerativeClustering(n_clusters=2),
             'OPTICS': OPTICS(min_samples=4, metric='euclidean')
         },
         3: {
-            'KMeans': KMeans(n_clusters=4, init='random', algorithm='lloyd'),
+            'KMeans': KMeans(n_clusters=5, init='random', algorithm='lloyd'),
             #'AffinityPropagation': AffinityPropagation(damping=0.5, affinity='euclidean'),
-            'AgglomerativeClustering': AgglomerativeClustering(n_clusters=3),
+            'AgglomerativeClustering': AgglomerativeClustering(n_clusters=2),
             'OPTICS': OPTICS(min_samples=6, metric='euclidean')
         },
         'nd': {
-            'KMeans': KMeans(n_clusters=4, init='random', algorithm='lloyd'),
+            'KMeans': KMeans(n_clusters=2, init='random', algorithm='lloyd'),
             #'AffinityPropagation': AffinityPropagation(damping=0.5, affinity='euclidean'),
-            'AgglomerativeClustering': AgglomerativeClustering(n_clusters=2),
+            'AgglomerativeClustering': AgglomerativeClustering(n_clusters=4),
             'OPTICS': OPTICS(min_samples=12, metric='euclidean')
         }
     },
     'circle-dataset': {
         2: {
-            'KMeans': KMeans(n_clusters=5, init='random', algorithm='lloyd'),
-            'AgglomerativeClustering': AgglomerativeClustering(n_clusters=5),
+            'KMeans': KMeans(n_clusters=7, init='random', algorithm='lloyd'),
+            'AgglomerativeClustering': AgglomerativeClustering(n_clusters=7),
             #'AffinityPropagation': AffinityPropagation(damping=0.5, affinity='euclidean'),
             'OPTICS': OPTICS(min_samples=4, metric='euclidean')
         },
         3: {
-            'KMeans': KMeans(n_clusters=4, init='random', algorithm='lloyd'),
-            'AgglomerativeClustering': AgglomerativeClustering(n_clusters=2),
+            'KMeans': KMeans(n_clusters=9, init='random', algorithm='lloyd'),
+            'AgglomerativeClustering': AgglomerativeClustering(n_clusters=9),
             #'AffinityPropagation': AffinityPropagation(damping=0.5, affinity='euclidean'),
             'OPTICS': OPTICS(min_samples=6, metric='euclidean')
         },
@@ -112,19 +112,19 @@ model_mapper = {
         }
     }, 'line-dataset': {
         2: {
-            'KMeans': KMeans(n_clusters=4, init='random', algorithm='lloyd'),
+            'KMeans': KMeans(n_clusters=2, init='random', algorithm='lloyd'),
             'AgglomerativeClustering': AgglomerativeClustering(n_clusters=2),
             #'AffinityPropagation': AffinityPropagation(damping=0.5, affinity='euclidean'),
             'OPTICS': OPTICS(min_samples=4, metric='euclidean')
         },
         3: {
-            'KMeans': KMeans(n_clusters=4, init='random', algorithm='lloyd'),
-            'AgglomerativeClustering': AgglomerativeClustering(n_clusters=5),
+            'KMeans': KMeans(n_clusters=2, init='random', algorithm='lloyd'),
+            'AgglomerativeClustering': AgglomerativeClustering(n_clusters=3),
             #'AffinityPropagation': AffinityPropagation(damping=0.5, affinity='euclidean'),
             'OPTICS': OPTICS(min_samples=6, metric='euclidean')
         },
         'nd': {
-            'KMeans': KMeans(n_clusters=4, init='random', algorithm='lloyd'),
+            'KMeans': KMeans(n_clusters=2, init='random', algorithm='lloyd'),
             'AgglomerativeClustering': AgglomerativeClustering(n_clusters=5),
             #'AffinityPropagation': AffinityPropagation(damping=0.5, affinity='euclidean'),
             'OPTICS': OPTICS(min_samples=6, metric='euclidean')
@@ -132,14 +132,14 @@ model_mapper = {
     },
     'skewed-dataset': {
         2: {
-            'KMeans': KMeans(n_clusters=4, init='random', algorithm='lloyd'),
-            'AgglomerativeClustering': AgglomerativeClustering(n_clusters=3),
+            'KMeans': KMeans(n_clusters=5, init='random', algorithm='lloyd'),
+            'AgglomerativeClustering': AgglomerativeClustering(n_clusters=6),
             #'AffinityPropagation': AffinityPropagation(damping=0.5, affinity='euclidean'),
             'OPTICS': OPTICS(min_samples=4, metric='euclidean')
         },
         3: {
             'KMeans': KMeans(n_clusters=4, init='random', algorithm='lloyd'),
-            'AgglomerativeClustering': AgglomerativeClustering(n_clusters=4),
+            'AgglomerativeClustering': AgglomerativeClustering(n_clusters=9),
             #'AffinityPropagation': AffinityPropagation(damping=0.5, affinity='euclidean'),
             'OPTICS': OPTICS(min_samples=6, metric='euclidean')
         },
@@ -157,10 +157,10 @@ datasets_mapper = {
     'seeds-dataset': '../data/seeds-dataset/rq2-nd.csv',
     'circle-dataset': '../RQ3/data/circle_1000_3d.csv',
     'line-dataset': '../RQ3/data/line_1000_3d.csv',
-    'skewed-dataset': '../RQ3/data/skewed_1000_3d_.csv'
+    'skewed-dataset': '../RQ3/data/skewed_1000_3d.csv'
 }
 supported_datasets = ['heart', 'seeds', 'circle-dataset', 'line-dataset', 'skewed-dataset']
-variants = ['kd-Laplace', 'grid-kd-Laplace', 'density-kd-Laplace', 'piecewise']
+variants = ['nd-Laplace', 'grid-nd-Laplace', 'density-nd-Laplace', 'piecewise']
 
 app = typer.Typer()
 
@@ -183,7 +183,6 @@ def plot_heatmap(df, metric, save_path=None, title=None, provided_ax=None, max_v
     ax.set_ylabel('Dimensions', fontsize=font_sizes['title'])
     ax.set_xlabel('Privacy budgets($\epsilon$)', fontsize=font_sizes['title'])
     heatmap.tick_params(labelsize=font_sizes['normal'])
-
     plt.tight_layout()
     if save_path is not None:
         #cbar = heatmap.get_children()[0]
@@ -214,16 +213,16 @@ def get_color_for_cluster_algorithm(name: str):
     elif name.__contains__('OPTICS'):
         return 'green'
     elif name.__contains__('Agglomerative'):
-        return 'orange'
+        return 'red'
 
 def map_mechanism_to_color(mechanism):
-    if mechanism == 'density-kd-Laplace':
+    if mechanism == 'density-nd-Laplace':
         return 'green'
     if mechanism == 'piecewise':
         return 'orange'
-    if mechanism == 'grid-kd-Laplace':
+    if mechanism == 'grid-nd-Laplace':
         return 'blue'
-    if mechanism == 'kd-Laplace':
+    if mechanism == 'nd-Laplace':
         return 'red'
     else:
         return 'black'
@@ -302,9 +301,10 @@ def find_baseline_mi_values(plain_df: pd.DataFrame, y_target=None, cluster_algor
                                         columns=plain_df_copy.columns, targets=targets)
     scores['tpr_value'] = scores['tpr'].apply(lambda x: x[1])
     scores['fpr_value'] = scores['fpr'].apply(lambda x: x[1])
+
     # scores['fpr'] = scores['tpr'].apply(lambda x: x.apply(lambda x: float(x.strip('[]').split()[1]) if type(x) is not float else x))
     # scores_mean = scores.mean()
-    return scores['tpr_value'].mean(), scores['fpr_value'].mean()
+    return scores['tpr_value'].mean(), scores['fpr_value'].mean(), scores['attack_adv'].mean()
 
 def plot_cluster_utility(result, metric_name, epsilons, cluster_column_name='type',
                      metric='Adjusted Mutual Information (AMI)', provided_ax=None,
@@ -399,7 +399,7 @@ def plot_comparison(utility_metrics: pd.DataFrame,
     plt.clf()
 
 def run_mi_experiments(X, X_perturbed, epsilon, n_times=10, columns=['X', 'Y'], y_true_target=None, cluster_algorithm=None):
-    shokri_mi_avgs = {'epsilon': [], 'shokri_mi_adv': [], 'attack_adv': [], 'tpr': [], 'fpr': [], 'run': []}
+    shokri_mi_avgs = {'epsilon': [], 'shokri_mi_adv': [], 'precision': [], 'attack_adv': [], 'tpr': [], 'fpr': [], 'run': []}
     X_pd = pd.DataFrame(X, columns=columns)
     X_perturbed = X_perturbed[columns]
     y_true = y_true_target
@@ -462,17 +462,23 @@ def run_mi_experiments(X, X_perturbed, epsilon, n_times=10, columns=['X', 'Y'], 
         attack = MembershipInferenceBlackBox(art_classifier, attack_model_type="rf")
         attack.fit(member_x, member_y, nonmember_x, nonmember_y, member_predictions, nonmember_predictions)
 
-        member_infer = attack.infer(x_target_train, y_target_train)
+        member_infer = attack.infer(x_target[:attack_train_size], y_target_train)
         nonmember_infer = attack.infer(x_target_test, y_target_test)
 
         # concatenate everything and calculate roc curve
         predicted_y = np.concatenate((member_infer, nonmember_infer))
         actual_y = np.concatenate((np.ones(len(member_infer)), np.zeros(len(nonmember_infer))))
         fpr, tpr, _ = roc_curve(actual_y, predicted_y, pos_label=1)
-        attack_adv = tpr[1] / (tpr[1] + fpr[1])
-        print(tpr[1], fpr[1])
+        # attack_adv = tpr[1] / (tpr[1] + fpr[1])
+        ar = recall_score(actual_y, predicted_y, pos_label=1)
+        attack_advantage_yeom = ar - fpr[1]
+        print('actual training', ar, attack_advantage_yeom)
+        print('precision:', precision_score(actual_y, predicted_y, pos_label=1))
+        print(roc_auc_score(actual_y, predicted_y))
         shokri_mi_avgs['shokri_mi_adv'].append(tpr[1] - fpr[1])
-        shokri_mi_avgs['attack_adv'].append(attack_adv)
+        shokri_mi_avgs['attack_adv'].append(attack_advantage_yeom)
+        shokri_mi_avgs['precision'].append(precision_score(actual_y, predicted_y, pos_label=1))
+        # shokri_mi_avgs['attack_adv'].append(attack_adv)
         shokri_mi_avgs['tpr'].append(tpr)
         shokri_mi_avgs['fpr'].append(fpr)
 
@@ -489,7 +495,7 @@ def run_mi_for_dimensions(plain_df, full_perturbation_df, dataset, epsilons: lis
         for epsilon in epsilons:
             _full_perturbation_df = full_perturbation_df[
                 (full_perturbation_df['dimension'] == col) & (full_perturbation_df['epsilon'] == epsilon)]
-            security_df = run_mi_experiments(data, _full_perturbation_df, epsilon, columns=columns, n_times=n_times, y_true_target=y_true, cluster_algorithm=cluster_algorithm)
+            security_df = run_mi_experiments(data, _full_perturbation_df, epsilon, columns=columns, n_times=n_times, y_true_target=y_true)
             security_df['dimension'] = col
             full_security_df = pd.concat([full_security_df, security_df], ignore_index=True)
     return full_security_df
@@ -562,11 +568,11 @@ def generate_input_data(dataset: str):
     max_columns = plain_df.drop(columns=['class']).shape[1]
     for variant in variants:
         full_perturbation = pd.DataFrame()
-        input_path = f'./data/kd-laplace/{variant}/{dataset}'
+        input_path = f'./data/nd-laplace/{variant}/{dataset}'
         create_directory_if_nonexistent(input_path)
-        full_perturbation_loc = f'./data/kd-laplace/{variant}/{dataset}/full_perturbation.csv'
+        full_perturbation_loc = f'./data/nd-laplace/{variant}/{dataset}/full_perturbation.csv'
         if os.path.exists(full_perturbation_loc):
-            print('Full perturbation already exists, skipping...')
+            print('Full perturbation already exists, s§ipping...')
             continue
         else:
             print('Full perturbation does not exist, generating...')
@@ -592,8 +598,8 @@ def generate_utility_experiments(dataset: str):
     plain_df = helpers.load_dataset(dataset_location)
     for variant in variants:
         utility_df = pd.DataFrame()
-        variant_perturbation_df_loc = f'./data/kd-laplace/{variant}/{dataset}/full_perturbation.csv'
-        utility_loc = f'./data/kd-laplace/{variant}/{dataset}/utility.csv'
+        variant_perturbation_df_loc = f'./data/nd-laplace/{variant}/{dataset}/full_perturbation.csv'
+        utility_loc = f'./data/nd-laplace/{variant}/{dataset}/utility.csv'
         variant_perturbation_df = pd.read_csv(variant_perturbation_df_loc)
         if os.path.exists(utility_loc):
             print('Utility already exists, skipping...')
@@ -615,10 +621,10 @@ def generate_distance_data(dataset: str):
     max_columns = plain_df_no_class.shape[1]
 
     for variant in variants:
-        perturbed_dataset_loc = f'./data/kd-laplace/{variant}/{dataset}/full_perturbation.csv'
+        perturbed_dataset_loc = f'./data/nd-laplace/{variant}/{dataset}/full_perturbation.csv'
         perturbed_dataset = helpers.load_dataset(perturbed_dataset_loc)
         privacy_distance_df_variant = pd.DataFrame()
-        privacy_distance_loc = f'./data/kd-laplace/{variant}/{dataset}/privacy_distance.csv'
+        privacy_distance_loc = f'./data/nd-laplace/{variant}/{dataset}/privacy_distance.csv'
         if os.path.exists(privacy_distance_loc):
             print('Privacy distance already exists, skipping...')
             continue
@@ -646,15 +652,15 @@ def generate_security_experiments(dataset: str):
     plain_df = helpers.load_dataset(dataset_location)
     for variant in variants:
         security_df = pd.DataFrame()
-        variant_perturbation_df_loc = f'./data/kd-laplace/{variant}/{dataset}/full_perturbation.csv'
-        if(os.path.exists(f'./data/kd-laplace/{variant}/{dataset}/security.csv')):
+        variant_perturbation_df_loc = f'./data/nd-laplace/{variant}/{dataset}/full_perturbation.csv'
+        if(os.path.exists(f'./data/nd-laplace/{variant}/{dataset}/security.csv')):
             print('Security already exists, skipping...')
             continue
         variant_perturbation_df = pd.read_csv(variant_perturbation_df_loc)
         dataframe = run_mi_for_dimensions(plain_df, variant_perturbation_df, dataset, epsilons, n_times=10)
         security_df = pd.concat([security_df, dataframe], ignore_index=True)
 
-        security_df.to_csv(f'./data/kd-laplace/{variant}/{dataset}/security.csv')
+        security_df.to_csv(f'./data/nd-laplace/{variant}/{dataset}/security.csv')
 
 @app.command()
 def generate_thesis_reports(dataset: str):
@@ -672,11 +678,11 @@ def generate_thesis_reports(dataset: str):
     for num_dimensions in dimensions:
         dim = 2 if num_dimensions == 2 else 3 if num_dimensions == 3 else plain_df.drop(columns=['class']).shape[1]
         for variant in variants:
-            save_path = f'{thesis_path}/kd-laplace/{variant}/{dataset}'
-            save_path_local = f'./data/kd-laplace/{variant}/{dataset}'
+            save_path = f'{thesis_path}/nd-laplace/{variant}/{dataset}'
+            save_path_local = f'./data/nd-laplace/{variant}/{dataset}'
             create_directory_if_nonexistent(save_path)
-            dataset_loc = f'./data/kd-laplace/{variant}/{dataset}/utility.csv'
-            dataset_distance_loc = f'./data/kd-laplace/{variant}/{dataset}/privacy_distance.csv'
+            dataset_loc = f'./data/nd-laplace/{variant}/{dataset}/utility.csv'
+            dataset_distance_loc = f'./data/nd-laplace/{variant}/{dataset}/privacy_distance.csv'
             dataset_df = helpers.load_dataset(dataset_loc)
             dataset_df_kmeans = dataset_df.loc[dataset_df['clustering_algorithm'].str.contains('KMeans')]
             dataset_distance_df = helpers.load_dataset(dataset_distance_loc)
@@ -695,7 +701,7 @@ def generate_thesis_reports(dataset: str):
                 ## Compare cluster utility
                 filter_dimensions = dataset_df['dimensions'] == dim
                 dataset_cluster_utility = dataset_df.loc[(filter_dimensions) & (dataset_df['mechanism'] == variant)]
-                piecewise_loc = f'./data/kd-laplace/piecewise/{dataset}/utility.csv'
+                piecewise_loc = f'./data/nd-laplace/piecewise/{dataset}/utility.csv'
                 dataset_df_piecewise = helpers.load_dataset(piecewise_loc)
                 dataset_df_piecewise = dataset_df_piecewise.loc[dataset_df_piecewise['dimensions'] == dim]
                 #mechanism = get_mechanism_based_on_dimension(dim, variant)
@@ -720,15 +726,15 @@ def generate_thesis_reports(dataset: str):
             #max_advantage = security_df['shokri_mi_adv'].max()
             #min_advantage = security_df['shokri_mi_adv'].min()
             ## Compare security
-            plot_heatmap(security_df, 'shokri_mi_adv', save_path=f'{save_path}/', title=f'', square=square)
+            plot_heatmap(security_df, 'attack_adv', save_path=f'{save_path}/', title=f'', square=square)
             plot_heatmap(security_df, 'tpr', save_path=f'{save_path}/', title=f'', square=square)
 
     # Compare all mechanisms
     all_utility_df = pd.DataFrame()
     all_security_df = pd.DataFrame()
-    export_path = f'{thesis_path}/kd-laplace/'
+    export_path = f'{thesis_path}/nd-laplace/'
     for variant in variants:
-        variant_path = f'./data/kd-laplace/{variant}/{dataset}'
+        variant_path = f'./data/nd-laplace/{variant}/{dataset}'
         variant_df = pd.read_csv(f'{variant_path}/utility.csv')
         variant_security_df = pd.read_csv(f'{variant_path}/security.csv')
         all_utility_df = pd.concat([all_utility_df, variant_df], ignore_index=True)
@@ -739,8 +745,8 @@ def generate_thesis_reports(dataset: str):
 
     cluster_algorithm = model_mapper[dataset]['nd' if plain_df.shape[1] > 3 else plain_df.shape[1]]
     y_true = plain_df['class'] if 'class' in plain_df else None
-    baseline_tpr, baseline_fpt = find_baseline_mi_values(plain_df, y_target=y_true, n_times=10, cluster_algorithm=cluster_algorithm['KMeans'])
-    plot_comparison(all_security_df, dataset, metric='shokri_mi_adv', metric_name='Adversary advantage', export_path=f'{export_path}/')
+    baseline_tpr, baseline_fpt, baseline_adv = find_baseline_mi_values(plain_df, y_target=y_true, n_times=10, cluster_algorithm=cluster_algorithm['KMeans'])
+    plot_comparison(all_security_df, dataset, metric='attack_adv', baseline_value=baseline_adv, metric_name='Adversary advantage', export_path=f'{export_path}/')
     plot_comparison(all_security_df, dataset, metric='tpr', tpr_baseline=baseline_tpr, metric_name='True Positive Rate (TPR)', export_path=f'{export_path}/')
 
 
