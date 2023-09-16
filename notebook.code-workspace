@@ -17,6 +17,19 @@
 		},
 		{
 			"path": "RQ1"
+		},
+		{
+			"path": "./",
+			"name": "Project files"
+		},
+		{
+			"path": "RQ2"
+		},
+		{
+			"path": "ExperimentRunners"
+		},
+		{
+			"path": "RQ3"
 		}
 	],
 	"settings": {}
