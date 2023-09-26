@@ -328,7 +328,7 @@ def plot_cluster_utility(result, metric_name, epsilons, cluster_column_name='typ
     ax_local.set_xlabel('Privacy budget ($\epsilon$)', fontsize=font_sizes['normal'])
     ax_local.set_ylabel(metric, fontsize=font_sizes['normal'])
     ax_local.tick_params(labelsize=font_sizes['normal'])
-
+    ax_local.get_legend().remove()
     if save:
         file_name = metric_name if export_file_name is None else export_file_name
         fig.savefig(f'{export_path}/{file_name}.png')

@@ -17,6 +17,7 @@ from Helpers import twod_laplace, threed_laplace, nd_laplace
 from scipy.spatial import KDTree
 from itertools import cycle
 
+from Helpers.ldp_mechanism import ldp_mechanism
 #from Helpers.ldp_mechanism import ldp_mechanism
 from Helpers.pairwise import PMBase, PiecewiseMechanism
 from sklearn.neighbors import NearestNeighbors
