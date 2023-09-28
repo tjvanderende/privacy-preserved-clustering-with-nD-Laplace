@@ -18,7 +18,6 @@ from sklearn.metrics import adjusted_mutual_info_score, adjusted_rand_score, cal
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
 import seaborn as sns
-from ExperimentRunners.main import app
 
 from Helpers import helpers, rq3_helpers
 from Helpers.UtilityPlotter import UtilityPlotter
@@ -233,6 +232,14 @@ def generate_color_palette_mechanism(algorithms):
 def generate_color_palette_clustering(algorithms):
     return {algorithm: get_color_for_cluster_algorithm(algorithm) for algorithm in algorithms}
 
+def generate_style_palette(algorithms, array):
+    return {algorithm: get_style_per_algorithm(algorithm, array) for algorithm in algorithms}
+
+def get_style_per_algorithm(algorithm, array):
+    if algorithm.lower().__contains__("piecewise"):
+        return array[0]
+    elif algorithm.lower().__contains__("laplace"):
+        return array[1]
 
 def get_full_metric_name(metric_name):
     if metric_name == 'ari':
@@ -268,8 +275,16 @@ def plot_results_for_mechanism_comparison(utility_metrics, compare_to, plain_df,
     baseline = calculate_baseline(cluster_models, plain_df)
     ax_sc.axhline(y=baseline['avg_sc'], linestyle='-.', label='non-private KMeans (baseline)')
 
-    ax_sc.legend()
-    ax_ami.get_legend().remove()
+    handles, labels = ax_sc.get_legend().legend_handles, [text.get_text() for text in ax_sc.get_legend().get_texts()]
+    baseline_handle = plt.Line2D([], [], color='black', linestyle='-.')
+    baseline_label = 'non-private KMeans (baseline)'
+    handles.append(baseline_handle)
+    labels.append(baseline_label)
+
+    ax_ami.legend(handles, labels, loc='lower center', bbox_to_anchor=(.5, 1))
+    sns.move_legend(ax_ami, "lower center", bbox_to_anchor=(.5, 1))
+
+    ax_sc.get_legend().remove()
     #ax_sc.get_legend().remove()
     ax1.grid(linestyle='dotted')
     ax2.grid(linestyle='dotted')
@@ -311,16 +326,22 @@ def plot_cluster_utility(result, metric_name, epsilons, cluster_column_name='typ
                      title='External validation (AMI & ARI): Difference between privately trained cluster algorithms '
                            'versus \n non-private trained cluster algorithms', save=True, export_file_name=None, export_path=None, compare_to=None):
     fig, ax = plt.subplots(1, sharex=True, figsize=(12, 10))
-    types = result[cluster_column_name].unique()
     ax_local = ax if provided_ax is None else provided_ax
     result_copy = result.copy()
     if compare_to is not None:
-        result_copy = pd.concat([result_copy, compare_to], ignore_index=True)
+        compare_to_copy = compare_to.copy()
+        compare_to_copy[cluster_column_name] = compare_to_copy[cluster_column_name].apply(lambda val: val + ' (Piecewise)')
+        result_algorithm_string = result_copy['algorithm'].unique()
+        result_copy[cluster_column_name] = result_copy[cluster_column_name].apply(lambda val: val + ' (nD-Laplace)')
+        result_copy = pd.concat([result_copy, compare_to_copy], ignore_index=True)
+
     result_copy['Privacy mechanism'] = result_copy['algorithm']
     result_copy['Clustering algorithm'] = result_copy[cluster_column_name]
-    ax = sns.lineplot(x='epsilon', y=metric_name, data=result_copy, ax=ax_local, style='Privacy mechanism',
+    styles = result_copy['Clustering algorithm'].unique()
+    types = result_copy[cluster_column_name].unique()
+    ax = sns.lineplot(x='epsilon', y=metric_name, data=result_copy, ax=ax_local, style='Clustering algorithm', markers=generate_style_palette(styles, ["s", "o"]),
                       hue='Clustering algorithm',
-                      palette=generate_color_palette_clustering(types), markers=False, legend=True)
+                      palette=generate_color_palette_clustering(types), dashes=generate_style_palette(styles, [[], [4,2]]), legend=True)
 
 
     ax_local.set_xticks(epsilons, labels=epsilons)
@@ -328,7 +349,7 @@ def plot_cluster_utility(result, metric_name, epsilons, cluster_column_name='typ
     ax_local.set_xlabel('Privacy budget ($\epsilon$)', fontsize=font_sizes['normal'])
     ax_local.set_ylabel(metric, fontsize=font_sizes['normal'])
     ax_local.tick_params(labelsize=font_sizes['normal'])
-    ax_local.get_legend().remove()
+
     if save:
         file_name = metric_name if export_file_name is None else export_file_name
         fig.savefig(f'{export_path}/{file_name}.png')
