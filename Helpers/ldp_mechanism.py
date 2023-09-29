@@ -2,6 +2,7 @@ import math
 import random
 import pandas as pd
 import numpy as np
+from scipy.spatial.distance import pdist
 from sklearn.preprocessing import MinMaxScaler
 
 from Helpers import threed_laplace, twod_laplace, nd_laplace
@@ -17,48 +18,83 @@ class ldp_mechanism:
     """
     Truncate dataset based on a meshgrid
     """
-
-    def grid_remap(self, non_private_dataset: pd.DataFrame, private_dataset: pd.DataFrame, grid_size: int = 10,
-                   include_indicator: bool = False, columns=['x', 'y']):
-        mesh = [np.linspace(non_private_dataset[:, i].min(), non_private_dataset[:, i].max(), num=grid_size) for i in
+    def prepare_grid_remapping(self, non_private_dataset: pd.DataFrame, columns, grid_unit_size = 10):
+        mesh = [np.linspace(non_private_dataset.iloc[:, i].min(), non_private_dataset.iloc[:, i].max(), num=grid_unit_size) for i in
                 range(non_private_dataset.shape[1])]
-        meshgrid = np.meshgrid(*mesh, indexing='ij')
-        tree = spatial.KDTree(non_private_dataset)
-        _, closest_indices = tree.query(private_dataset)
+        meshgrid = np.meshgrid(*mesh)
+        # Convert the meshgrid to a DataFrame
+        mesh_grid = pd.DataFrame({f'x{i}': meshgrid[i].flatten() for i in range(len(meshgrid))})
 
-        distances = np.linalg.norm(private_dataset - non_private_dataset[closest_indices], axis=1)
+        kd_tree = spatial.KDTree(non_private_dataset)
+        df_data = pd.DataFrame(non_private_dataset, columns=columns).copy()
+        results = []
+        # Calculate the upper bound and lower bound of the meshgrid
+        upper_bound = mesh_grid.max()
+        lower_bound = mesh_grid.min()
 
-        # Reshape the meshgrid array
-        meshgrid_reshaped = np.stack(meshgrid, axis=-1)
+        for center_index, center in df_data.iterrows():
+            # Points within the grid unit around center using euclidean distance
+            points_within_grid_unit = kd_tree.query(center, grid_unit_size)
+            # Filter df_data to only contain points within the grid unit
+            points_within_grid_unit2 = df_data.iloc[points_within_grid_unit[1]]
+            # Calculate the diameter of the points within the grid unit
+            diameter = pdist(points_within_grid_unit2, 'euclidean').max() if len(
+                points_within_grid_unit2) > 0 else grid_unit_size
+            diameters = []
+            # Check each dimension separately for being outside the boundary
+            for dim in df_data.columns:
+                dim_index = df_data.columns.get_loc(dim)
+                dim_value = center[dim_index]
 
-        # Create a KDTree from meshgrid
-        meshgrid_tree = spatial.KDTree(meshgrid_reshaped.reshape(-1, meshgrid_reshaped.shape[-1]))
+                # Check if the center minus the grid_unit_size is outside the boundary for this dimension
+                if center[dim_index] - grid_unit_size < lower_bound[dim_index]:
+                    # Update the diameter for this dimension to the distance between the center and the lower bound
+                    dist_to_lower_bound = np.linalg.norm(center[dim_index] - lower_bound[dim_index])
+                    diameters.append(dist_to_lower_bound)
 
-        # Query the KDTree with private dataset  to find the closest points in meshgrid
-        _, closest_meshgrid_indices = meshgrid_tree.query(private_dataset)
+                # Check if the center plus the grid_unit_size is outside the boundary for this dimension
+                if center[dim_index] + grid_unit_size > upper_bound[dim_index]:
+                    # Update the diameter for this dimension to the distance between the center and the upper bound
+                    dist_to_upper_bound = np.linalg.norm(center[dim_index] - upper_bound[dim_index])
+                    diameters.append(dist_to_upper_bound)
 
-        # Calculate the distances between private dataset  and closest points in meshgrid
-        meshgrid_distances = np.linalg.norm(
-            private_dataset - meshgrid_reshaped.reshape(-1, meshgrid_reshaped.shape[-1])[closest_meshgrid_indices],
-            axis=1)
+            # Calculate the radius r_prime
+            r_prime = min(diameters) if len(diameters) > 0 else diameter
 
-        # Check if each point in private dataset is within the domain of non private dataset
-        outside_domain_mask = self.get_outside_domain_mask(private_dataset, non_private_dataset)
+            results.append(r_prime)
 
-        # Create a mask for points outside the domain and closer to meshgrid points
-        outside_domain_and_closer_mask = np.logical_or(outside_domain_mask, meshgrid_distances < distances)
+        return results
 
-        # Remap points outside the domain and closer to meshgrid points to the closest meshgrid points
-        remapped_dataset = private_dataset.copy()
-        remapped_dataset[outside_domain_and_closer_mask] = \
-            meshgrid_reshaped.reshape(-1, meshgrid_reshaped.shape[-1])[closest_meshgrid_indices][
-                outside_domain_and_closer_mask]
-        remapped_dataset = pd.DataFrame(remapped_dataset, columns=columns)
-        if (include_indicator):
-            remapped_dataset['is_remapped'] = False
-            remapped_dataset.loc[outside_domain_mask, 'is_remapped'] = True
-            print("Points outside domain for grid remapping:", remapped_dataset.loc[outside_domain_mask].shape[0])
-        return remapped_dataset
+    def grid_remap(self, non_private_dataset: pd.DataFrame, private_dataset: pd.DataFrame, columns, grid_unit_size = 10):
+        non_private_df_copy = non_private_dataset.copy()
+        private_df = private_dataset.copy()
+        private_df['r_prime'] = self.prepare_grid_remapping(non_private_df_copy, columns, grid_unit_size)
+
+        if not private_df.columns.isin(['r']).any():
+            ValueError("Did not find r column, so we cannot grid remap")
+        for index, row in non_private_df_copy.iterrows():
+            # Get r inside private_df on same index
+            r = private_df.at[index, 'r']
+            # Get r_prime inside private_df on same index
+            r_prime = private_df.at[index, 'r_prime']
+            # If the distance is greater than r_prime, adjust the private point to lie on the boundary
+            if r > r_prime:
+                # convert x1, y1 to polar coordinates
+                #angle = np.arctan2(y1, x1)
+                spherical_row = self.cartesian_to_spherical(row[columns])
+                cartesian_noise = nd_laplace.ct(r_prime, spherical_row)
+                # convert r_prime to polar rho
+                # rho = np.sqrt(x1**2 + y1**2)
+                # set value to each column
+                for i, column in enumerate(columns):
+                    z_prime = row[column] + cartesian_noise[i]
+                    private_df.at[index, column] = z_prime
+
+                private_df.at[index, 'is_remapped'] = True
+            else:
+                private_df.at[index, 'is_remapped'] = False
+
+        return private_df
 
     def get_outside_domain_mask(self, private_dataset: pd.DataFrame, non_private_dataset: pd.DataFrame):
         # Create a mask for points outside the domain of dataset2
@@ -112,21 +148,19 @@ class ldp_mechanism:
         tree = spatial.KDTree(non_private_df)
         perturbed_data_copy = perturbed_df.copy()
         perturbed_data_outside_domain = perturbed_data_copy.copy()
+        if not perturbed_data_copy.columns.isin(['is_remapped']).any():
+            print("No is_remapped column found, so we find them ourself")
+            points_outside_domain = self.get_outside_domain_mask(perturbed_data_copy.values, non_private_df.values)
+            perturbed_data_outside_domain = perturbed_data_copy.copy().loc[points_outside_domain]
         if perturbed_df.columns.isin(['is_remapped']).any():
             print("Found is_remapped column, so we use that to filter")
             perturbed_data_outside_domain = perturbed_data_copy.loc[perturbed_data_copy['is_remapped']]
             perturbed_data_outside_domain = perturbed_data_outside_domain.drop(columns=['is_remapped'])
             perturbed_data_copy.drop(columns=['is_remapped'], inplace=True)
-        if not perturbed_data_copy.columns.isin(['is_remapped']).any():
-            print("No is_remapped column found, so we find them ourself")
-            points_outside_domain = self.get_outside_domain_mask(perturbed_data_copy.values, non_private_df.values)
-            perturbed_data_outside_domain = perturbed_data_copy.copy().iloc[points_outside_domain]
         if not perturbed_data_copy.columns.isin(['r']).any():
             raise ValueError("Perturbed data should have a column named 'r' which is the radius of the grid.")
-        if not perturbed_data_copy.shape[1] - 1 is non_private_df.shape[1]:
-            raise ValueError("Perturbed data should have the same number of columns as plain data.")
-        if not perturbed_data_copy.columns.drop(labels=['r']).isin(non_private_df.columns).all():
-            raise ValueError("Perturbed data should have the same columns as plain data.")
+        #if not perturbed_data_copy.columns.drop(labels=['r', 'is_remapped']).isin(non_private_df.columns).all():
+        #    raise ValueError("Perturbed data should have the same columns as plain data.")
 
         print("Points outside domain....", perturbed_data_outside_domain.shape)
 
@@ -163,6 +197,21 @@ class ldp_mechanism:
 
         return perturbed_data_copy
 
+    def cartesian_to_spherical(self, cartesian_coords):
+        # Initialize an array to store the polar angles (θ1, θ2, ...)
+        polar_angles = []
+        r = np.sqrt(np.sum(np.square(cartesian_coords)))
+
+        # Calculate the polar angles θ1, θ2, ...
+        for i in range(len(cartesian_coords) - 1):
+            angle_i = np.arccos(cartesian_coords[i] / (r * np.prod(np.sin(polar_angles))))
+            polar_angles.append(angle_i)
+
+        # Combine r and polar angles into a spherical coordinate tuple
+        spherical_coords = (r,) + tuple(polar_angles)
+
+        return spherical_coords
+
     def generate_2d_noise_for_point(self, non_private_row: np.array):
         p = random.random()
         theta = np.random.rand() * np.pi * 2
@@ -180,6 +229,7 @@ class ldp_mechanism:
             R.append(private_data_point[2])
         return pd.concat((pd.DataFrame(Z, columns=non_private_data.columns), pd.DataFrame(R, columns=['r'])), axis=1)
 
+
     """
     Generate noise for a point in 3-dimensional space
     @returns: x, y, z, r, where r is the radial distance from the center.
@@ -187,11 +237,6 @@ class ldp_mechanism:
     def generate_3d_noise_for_point(self):
         polar_angle, azimuth, _ = threed_laplace.generate_unit_sphere()  # theta, psi
         r = threed_laplace.generate_r(self.epsilon)
-        # theta = 2 * np.pi * u[0]
-        # theta = np.random.rand() * np.pi
-        # phi = np.arccos(2 * u[1] - 1)
-        # phi = np.random.rand() * np.pi*2 #
-        # https://mathworld.wolfram.com/SphericalCoordinates.html formula 4/5/6
         x = r * np.sin(polar_angle) * np.sin(azimuth)
         y = r * np.sin(polar_angle) * np.cos(azimuth)
         z = r * np.cos(polar_angle)
@@ -250,7 +295,7 @@ class ldp_mechanism:
     Epsilon was added to have the same format as the other mechanisms.
     """
 
-    def randomise(self, non_private_dataset: pd.DataFrame, epsilon, grid_size=6, plot_validation: bool = False, max_iterations=50, apply_normalization=False):
+    def randomise(self, non_private_dataset: pd.DataFrame, epsilon, grid_size=12, plot_validation: bool = False, max_iterations=50, apply_normalization=False):
         self.epsilon = epsilon
         scaler = MinMaxScaler()
         print('Run appropiate mechanism to generate a private dataset...')
@@ -262,22 +307,31 @@ class ldp_mechanism:
 
         # perturbed_df_find_grid_remappings_with_r = pd.concat([private_dataframe['r'], perturbed_df_with_grid_remapping], axis=1)
         # print(perturbed_df_with_grid_remapping)
+        print('Approximate the private dataset outside the domain to be inside the domain of the non-private dataset ', 'using a grid...')
+        perturbed_df_with_grid_remapping = self.grid_remap(non_private_dataset,
+                                                               private_dataframe,
+                                                               grid_unit_size=grid_size, columns=columns)
+
         print('All data that was remapped using a grid, is optimally remapped...')
-        perturbed_df_optimal_remapping = self.optimal_remap(non_private_dataset.copy(), private_dataframe.copy(), max_iterations)
+        perturbed_df_optimal_remapping = self.optimal_remap(non_private_dataset.copy(), perturbed_df_with_grid_remapping.copy(), max_iterations)
         # remap any points that are outside the domain of the non-private dataset after optimal remapping
         print('Shapes', perturbed_df_optimal_remapping.shape, private_dataframe.shape)
         if (plot_validation):
-            print(
-                'Approximate the private dataset outside the domain to be inside the domain of the non-private dataset '
-                'using a grid...')
-            perturbed_df_with_grid_remapping = self.grid_remap(non_private_dataset.values,
-                                                               private_dataframe.drop(columns=['r']).values,
-                                                               grid_size=grid_size, columns=columns,
-                                                               include_indicator=True)
+
             self.validate_randomisation(non_private_dataset, perturbed_df_optimal_remapping,
                                         perturbed_df_with_grid_remapping, private_dataframe)
 
-        return perturbed_df_optimal_remapping.drop(columns=['r'])
+        columns_to_remove = ['r', 'r_prime', 'is_remapped'] if perturbed_df_optimal_remapping.columns.isin(['is_remapped']).any() else ['r', 'r_prime']
+        return perturbed_df_optimal_remapping.drop(columns=columns_to_remove)
+
+    def randomise_with_grid(self, non_private_dataset: pd.DataFrame, epsilon, grid_size=12):
+        self.epsilon = epsilon
+        columns = non_private_dataset.columns
+        private_dataframe = self.generate_nd_laplace_for_dataset(non_private_dataset)
+        perturbed_df_with_grid_remapping = self.grid_remap(non_private_dataset,
+                                                           private_dataframe,
+                                                           grid_unit_size=grid_size, columns=columns)
+        return perturbed_df_with_grid_remapping.drop(columns=['r', 'r_prime', 'is_remapped'])
 
     def validate_randomisation(self, non_private_dataset: pd.DataFrame, remapped_private_dataset: pd.DataFrame,
                                private_dataset_grid_remap: pd.DataFrame, private_dataset: pd.DataFrame, columns=None):

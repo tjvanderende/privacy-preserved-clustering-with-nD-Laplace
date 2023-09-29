@@ -401,7 +401,7 @@ def compute_euclidean_distances_between_two_datasets_per_epsilon(plain_df, pertu
 def get_mechanism(algorithm):
     mechanism = ldp_mechanism()
     if algorithm == "2d-laplace-truncated":
-        return twod_laplace.generate_truncated_laplace_noise
+        return mechanism.randomise_with_grid
     if algorithm == "2d-piecewise":
         return generate_piecewise_perturbation
     if (algorithm == "2d-laplace"):
@@ -413,7 +413,7 @@ def get_mechanism(algorithm):
     if (algorithm == "3d-piecewise"):
         return generate_piecewise_perturbation
     if (algorithm == "3d-laplace-truncated"):
-        return threed_laplace.generate_truncated_perturbed_dataset
+        return mechanism.randomise_with_grid
     if (algorithm == "3d-laplace-optimal-truncated"):
         return mechanism.randomise
     if (algorithm == "nd-laplace-truncated"):
@@ -423,6 +423,6 @@ def get_mechanism(algorithm):
     if (algorithm == "nd-piecewise"):
         return generate_piecewise_perturbation
     if (algorithm == "nd-laplace-truncated"):
-        return nd_laplace.generate_truncated_nd_laplace_noise_for_dataset
+        return mechanism.randomise_with_grid
     if (algorithm == "nd-laplace-optimal-truncated"):
         return mechanism.randomise
